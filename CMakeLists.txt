@@ -54,7 +54,6 @@ set(HEADERS )
 add_executable(${TARGET} ${SOURCE} ${HEADERS})
 target_link_libraries(${PROJECT_NAME} PRIVATE volk)
 
-target_include_directories(${TARGET} PUBLIC VulkanMemoryAllocator/include)
 target_include_directories(${TARGET} PUBLIC stb)
 target_include_directories(${TARGET} PUBLIC ${VULKAN}/Include)
 target_include_directories(${TARGET} PUBLIC ${VULKAN}/Include/SDL2)
