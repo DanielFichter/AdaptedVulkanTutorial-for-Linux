@@ -9,36 +9,34 @@ project (
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 add_compile_options(-D IMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 add_compile_options(-Wno-nullability-completeness)
 add_compile_options(-D_CRT_SECURE_NO_WARNINGS) #for assimp
 
 find_package(Vulkan REQUIRED)
+find_package(SDL2 REQUIRED)
+include_directories(${PROJECT_NAME} ${DSL2_INCLUDE_DIRS})
 
 set(VULKAN $ENV{VULKAN_SDK}) #set to Vulkan SDK
 
 set(BUILD ${PROJECT_SOURCE_DIR}/build)  # engine include directory
 set(INCLUDE ${PROJECT_SOURCE_DIR}/include)  # engine include directory
 
-# ---- Fetch ImGui ---
+# ---- Begin Fetch ImGui ---
 include(FetchContent) # enable Fetch Content
 
 FetchContent_Declare(imgui
                      GIT_REPOSITORY https://github.com/ocornut/imgui.git 
                      GIT_TAG master)
 FetchContent_MakeAvailable(Imgui)
-#include_directories (${imgui_SOURCE_DIR})
-#include_directories(${imgui_SOURCE_DIR}/backends)
+
 set(IMGUI ${imgui_SOURCE_DIR})
+
+# --- End Fetch ImGui
 
 set(TARGET 28_model_loading)
 
-# --- include volk ---
 add_subdirectory(volk)
-
-# --- include vulkan memory allocator ---
-
 
 set(SOURCE
   ${IMGUI}/imgui.cpp
@@ -55,9 +53,6 @@ set(HEADERS )
 
 add_executable(${TARGET} ${SOURCE} ${HEADERS})
 target_link_libraries(${PROJECT_NAME} PRIVATE volk)
-
-find_package(SDL2 REQUIRED)
-include_directories(${PROJECT_NAME} ${DSL2_INCLUDE_DIRS})
 
 target_include_directories(${TARGET} PUBLIC VulkanMemoryAllocator/include)
 target_include_directories(${TARGET} PUBLIC stb)
