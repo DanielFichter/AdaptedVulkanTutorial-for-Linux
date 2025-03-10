@@ -3,4 +3,4 @@
 	url = https://github.com/zeux/volk.git
 [submodule "VulkanMemoryAllocator"]
 	path = VulkanMemoryAllocator
-	url = https://github.com/zeux/volk.git
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
