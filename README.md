@@ -1,3 +1,5 @@
+# The adapted adapted Vulkan Tutorial
+
 The Adapted Vulkan Toturial shows how to draw an object using the Vulkan API. It is based on the origin Vulkan Tutorial, but has been adapted to include the following features:
 
 * SDL2 instead of GLFW.
@@ -6,20 +8,18 @@ The Adapted Vulkan Toturial shows how to draw an object using the Vulkan API. It
 * Imgui.
 * Slang instead of GLSL.
 
-All features except Imgui are already part of the Vulkan SDK, and thus make sense to be used.
+Note that this repository is a fork of the adapted Vulkan Tutorial and is additionally adapted to be used on Linux.
 
-On Windows compile using MSVC and the compile.cmd file, or use CMake from VS Code or run (using MSVC generator)
+All features except Imgui are already part of the Vulkan SDK or contained in this repository, and thus make sense to be used.
+
+## Prerequisites
+
+* [the vulkan SDK](https://vulkan.lunarg.com/doc/view/latest/linux/getting_started_ubuntu.html).
+
+## Build and run
+Just build it with CMake and run it from the commandline:
 ```
 cmake -B build
 cmake --build build --config Debug
-build\Debug\28_model_loading.exe
+./build/28_model_loading
 ```
-
-You need two prerequisites:
-
-* The Vulkan SDK needs to be installed, and the environment variable VULKAN_SDK needs to point to it.
-* You need to clone the IMGUI repo (https://github.com/ocornut/imgui) into some directory. In the file *compile.cmd* or *CMakeLists.txt*, set the IMGUI variable to this directory. 
-* When using CMake, Imgui is automatically fetched from the Git repo (usually to build/_deps/imgui-src), no need to clone it.
-
-Only the CPP files are needed, no need to compile it.
-
