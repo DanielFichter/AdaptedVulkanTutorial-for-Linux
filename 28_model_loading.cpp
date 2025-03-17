@@ -1859,6 +1859,11 @@ private:
             }
         }
 
+        std::cout << " available validation layers: " << std::endl;
+        for (const auto& layerProperties : availableLayers) {
+            std::cout << "  " << layerProperties.layerName << std::endl;
+        }
+
         return true;
     }
 
