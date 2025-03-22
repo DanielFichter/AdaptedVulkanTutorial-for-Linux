@@ -19,12 +19,23 @@
 #include <tiny_obj_loader.h>
 
 #define VOLK_IMPLEMENTATION
+
+#ifdef __linux__
+#include "volk.h"
+#else
 #include "Volk/volk.h"
+#endif
+
 
 #define VMA_IMPLEMENTATION
 //#define VMA_STATIC_VULKAN_FUNCTIONS 0
 //#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
+
+#ifdef __linux__
+#include "vk_mem_alloc.h"
+#else
 #include "vma/vk_mem_alloc.h"
+#endif
 
 #define IMGUI_IMPL_VULKAN_USE_VOLK
 #include "imgui.h"

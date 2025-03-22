@@ -53,6 +53,11 @@ set(HEADERS )
 
 add_executable(${TARGET} ${SOURCE} ${HEADERS})
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  find_package(SDL2 REQUIRED)
+  include_directories(${PROJECT_NAME} ${DSL2_INCLUDE_DIRS})
+endif()
+
 target_include_directories(${TARGET} PUBLIC stb)
 target_include_directories(${TARGET} PUBLIC ${VULKAN}/Include)
 target_include_directories(${TARGET} PUBLIC ${VULKAN}/Include/SDL2)
@@ -62,6 +67,10 @@ target_include_directories(${TARGET} PUBLIC ${VULKAN}/Include/vma)
 target_include_directories(${TARGET} PUBLIC ${IMGUI})
 target_include_directories(${TARGET} PUBLIC ${IMGUI}/backends)
 
-target_link_libraries (${TARGET} PUBLIC ${VULKAN}/lib/SDL2.lib)
-target_link_libraries (${TARGET} PUBLIC ${VULKAN}/lib/volk.lib)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_libraries(${PROJECT_NAME} PUBLIC ${SDL2_LIBRARIES})
+else()
+  target_link_libraries (${TARGET} PUBLIC ${VULKAN}/lib/SDL2.lib)
+  target_link_libraries (${TARGET} PUBLIC ${VULKAN}/lib/volk.lib)
+endif()
