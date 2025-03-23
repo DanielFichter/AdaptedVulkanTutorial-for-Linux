@@ -512,6 +512,19 @@ private:
         createFramebuffers(device, swapChain, depthImage, renderPass);
     }
 
+    uint32_t getHighestAvilableAPIVersion()
+    {
+        uint32_t apiVersion = VK_API_VERSION_1_0;
+        if (vkEnumerateInstanceVersion != nullptr)
+        {
+            if (vkEnumerateInstanceVersion(&apiVersion) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to get Vulkan instance version!");
+            }
+        }
+
+        return apiVersion;
+    }
 
     void createInstance(VkInstance *instance, const std::vector<const char*>& validationLayers) {
         volkInitialize();
@@ -520,13 +533,21 @@ private:
             throw std::runtime_error("validation layers requested, but not available!");
         }
 
+        constexpr auto requiredAPIVersion = VK_API_VERSION_1_3;
+        const auto apiVersion = getHighestAvilableAPIVersion();
+        std::cout << "highest available API version: " << VK_VERSION_MAJOR(apiVersion) << "."
+        << VK_VERSION_MINOR(apiVersion) << "." << VK_VERSION_PATCH(apiVersion) << std::endl;
+        if (apiVersion < requiredAPIVersion) {
+            throw std::runtime_error("The required API version is not supported on this device!");
+        }
+
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Hello Triangle";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Tutorial";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_3;
+        appInfo.apiVersion = requiredAPIVersion;
 
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -1854,6 +1875,11 @@ private:
 
         std::vector<VkLayerProperties> availableLayers(layerCount);
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        std::cout << " available validation layers: " << std::endl;
+        for (const auto& layerProperties : availableLayers) {
+            std::cout << "  " << layerProperties.layerName << std::endl;
+        }
 
         for (const char* layerName : validationLayers) {
             bool layerFound = false;
