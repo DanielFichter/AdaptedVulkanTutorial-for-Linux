@@ -6,7 +6,8 @@ The Adapted Vulkan Toturial shows how to draw an object using the Vulkan API. It
 * Imgui.
 * Slang instead of GLSL.
 
-All features except Imgui are already part of the Vulkan SDK, and thus make sense to be used.
+For Windows and MacOS, all features except Imgui are already part of the Vulkan SDK, and thus make sense to be used.
+For Linux, SDL2 and glm have to be installed in addition to the Vulkan SDK.
 
 On Windows compile using MSVC and the compile.cmd file, or use CMake from VS Code or run (using MSVC generator)
 ```
@@ -14,6 +15,14 @@ cmake -B build
 cmake --build build --config Debug
 build\Debug\28_model_loading.exe
 ```
+
+On Linux compile using CMake:
+```
+cmake -B build
+cmake --build build --config Debug
+./build/28_model_loading
+```
+Note: Use GCC instead of Clang.
 
 You need two prerequisites:
 
