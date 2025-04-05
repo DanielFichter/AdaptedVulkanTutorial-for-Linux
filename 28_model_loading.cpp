@@ -65,7 +65,8 @@ const std::string m_TEXTURE_PATH = "textures/viking_room.png";
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char*> m_validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
+    "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_LUNARG_monitor"
 };
 
 std::vector<const char*> m_sdl_instance_extensions = {};
