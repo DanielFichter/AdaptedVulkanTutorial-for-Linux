@@ -775,7 +775,7 @@ namespace
         }
 
         out << "\t\textensions(" << extensions.size() << "): " << std::endl;            
-        for (size_t extensionIndex = 0; extensionIndex < std::min(10LU, extensions.size()); extensionIndex++)
+        for (size_t extensionIndex = 0; extensionIndex < std::min(10LLU, static_cast<long long unsigned>(extensions.size())); extensionIndex++)
         {
             out << "\t\t\t" << extensions.at(extensionIndex) << std::endl;
         }
