@@ -366,6 +366,8 @@ private:
 
 		createObject(m_physicalDevice, m_device, m_vmaAllocator, m_graphicsQueue, m_commandPool, 
 			m_descriptorPool, m_descriptorSetLayout, glm::mat4{1.0f}, m_MODEL_PATH, m_TEXTURE_PATH, m_objects);
+        createObject(m_physicalDevice, m_device, m_vmaAllocator, m_graphicsQueue, m_commandPool, 
+            m_descriptorPool, m_descriptorSetLayout, glm::mat4{1.f}, "models/ground.obj", "textures/wood_square.jpg", m_objects);
 	
 		createCommandBuffers(m_device, m_commandPool, m_commandBuffers);
         createSyncObjects(m_device, m_syncObjects);
