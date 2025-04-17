@@ -80,6 +80,14 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
+namespace Axes
+{
+    constexpr glm::vec3 x {1.f, 0.f, 0.f};
+    constexpr glm::vec3 y {0.f, 1.f, 0.f};
+    constexpr glm::vec3 z {0.f, 0.f, 1.f};
+}
+
+const std::set<SDL_Keycode> movementKeys{SDLK_w, SDLK_a, SDLK_s, SDLK_d};
 
 //ImGUI
 static void check_vk_result(VkResult err)
@@ -293,6 +301,10 @@ private:
 
 	std::vector<Object> m_objects;
 
+    glm::vec3 m_eye{2.f, 2.f, 2.f};
+    glm::vec3 m_cameraDirection{0.f};
+    glm::mat4 m_cameraRotation  = glm::rotate(glm::rotate(glm::mat4{1.f}, glm::radians(180.f - 45.f), {0.f, 0.f, 1.f}), glm::atan(glm::sqrt(8.f) / 2.f), {1.f, 0.f, 0.f});
+
     VkCommandPool m_commandPool;
     std::vector<VkCommandBuffer> m_commandBuffers;
 
@@ -312,6 +324,7 @@ private:
             SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
         #endif
 
+        SDL_ShowCursor(SDL_DISABLE);
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
         m_sdlWindow = SDL_CreateWindow("Tutorial", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, window_flags);
     }
@@ -402,6 +415,44 @@ private:
                         break;
                     }
                 }
+
+                if (event.type == SDL_KEYDOWN)
+                {
+                    switch (event.key.keysym.sym)
+                    {
+                        case SDLK_w:
+                            m_cameraDirection = -Axes::z;
+                            break;
+                        case SDLK_a:
+                            m_cameraDirection = -Axes::x;
+                            break;
+                        case SDLK_s:
+                            m_cameraDirection = Axes::z;
+                            break;
+                        case SDLK_d:
+                            m_cameraDirection = Axes::x;
+                            break;
+                    }
+                }
+
+                if (event.type == SDL_KEYUP)
+                {
+                    const auto keyCode = event.key.keysym.sym;
+                    if (movementKeys.contains(keyCode))
+                    {
+                        m_cameraDirection = glm::vec3{0.f};
+                    }
+                }
+
+                if (event.type == SDL_MOUSEMOTION)
+                {
+                    const auto xDiff = event.motion.xrel;
+                    const auto yDiff = event.motion.yrel;
+
+                    constexpr static float rotationSpeed = glm::radians(.1f);
+                    m_cameraRotation = glm::rotate(m_cameraRotation, rotationSpeed * yDiff, Axes::x);
+                    m_cameraRotation = glm::rotate(m_cameraRotation, rotationSpeed * xDiff, Axes::y);
+                }
             }
 
             if(!m_isMinimized) {
@@ -418,6 +469,7 @@ private:
             }
         }
         vkDeviceWaitIdle(m_device);
+
     }
 
     void cleanupSwapChain(VkDevice device, VmaAllocator vmaAllocator, SwapChain& swapChain, DepthImage& depthImage) {
@@ -1608,15 +1660,22 @@ private:
         }
     }
 
+    glm::mat4 createViewMatrix()
+    {
+        return glm::translate(glm::transpose(m_cameraRotation), -m_eye);
+    }
+
     void updateUniformBuffer(uint32_t currentImage, SwapChain& swapChain, std::vector<Object>& objects ) { 
         static auto startTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 		startTime = currentTime;
 
+        const auto viewMatrix = createViewMatrix(); 
+
 		for( auto& object : objects ) {
 	        object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	        object.m_ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	        object.m_ubo.view = viewMatrix;
 			object.m_ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.1f, 10.0f);
 	        object.m_ubo.proj[1][1] *= -1;
 
@@ -1630,11 +1689,19 @@ private:
 		, std::vector<Object>& objects, std::vector<VkCommandBuffer>& commandBuffers 
         , SyncObjects& syncObjects, uint32_t& currentFrame, bool& framebufferResized) {   
 
+        SDL_ShowCursor(SDL_DISABLE);
+        int windowWidth, windowHeight;
+        SDL_GetWindowSize(m_sdlWindow, &windowWidth, &windowHeight);
+        SDL_WarpMouseInWindow(m_sdlWindow, windowWidth / 2, windowHeight / 2);
+
         vkWaitForFences(device, 1, &syncObjects.m_inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
         VkResult result = vkAcquireNextImageKHR(device, swapChain.m_swapChain, UINT64_MAX
                             , syncObjects.m_imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+        constexpr static float cameraSpeed = .0002f;
+        m_eye += glm::vec3(cameraSpeed * m_cameraRotation * glm::vec4{m_cameraDirection, 1.f});
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR ) {
             recreateSwapChain(window, surface, physicalDevice, device, vmaAllocator, swapChain, depthImage, renderPass);
