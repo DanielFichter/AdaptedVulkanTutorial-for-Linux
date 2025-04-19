@@ -303,8 +303,8 @@ private:
 
     glm::vec3 m_eye{2.f, 2.f, 2.f};
     glm::vec3 m_cameraDirection{0.f};
-    float m_xAngle = 0;
-    float m_zAngle = 0;
+    float m_xAngle = glm::atan(glm::sqrt(8.f) / 2.f);
+    float m_zAngle = glm::radians(180.f - 45.f);
 
     VkCommandPool m_commandPool;
     std::vector<VkCommandBuffer> m_commandBuffers;
