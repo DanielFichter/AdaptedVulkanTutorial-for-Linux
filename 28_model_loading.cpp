@@ -301,6 +301,8 @@ private:
 
 	std::vector<Object> m_objects;
 
+    bool m_rotatingCamera = false;
+
     glm::vec3 m_eye{2.f, 2.f, 2.f};
     glm::vec3 m_cameraDirection{0.f};
     float m_xAngle = glm::atan(glm::sqrt(8.f) / 2.f);
@@ -432,6 +434,10 @@ private:
                         case SDLK_d:
                             m_cameraDirection = Axes::x;
                             break;
+                        case SDLK_ESCAPE:
+                            SDL_SetRelativeMouseMode(SDL_FALSE);
+                            m_rotatingCamera = false;
+                            break;
                     }
                 }
 
@@ -444,7 +450,7 @@ private:
                     }
                 }
 
-                if (event.type == SDL_MOUSEMOTION)
+                if (event.type == SDL_MOUSEMOTION && m_rotatingCamera)
                 {
                     const auto xDiff = event.motion.xrel;
                     const auto yDiff = event.motion.yrel;
@@ -457,6 +463,15 @@ private:
                         m_xAngle = newXAngle;
                     }
                     m_zAngle += static_cast<float>(xDiff) * rotationSpeed;
+                }
+
+                if (event.type == SDL_MOUSEBUTTONDOWN)
+                {
+                    if (event.button.button == SDL_BUTTON_LEFT)
+                    {
+                        SDL_SetRelativeMouseMode(SDL_TRUE);
+                        m_rotatingCamera = true;
+                    }
                 }
             }
 
@@ -1705,11 +1720,6 @@ private:
         , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass, Pipeline& graphicsPipeline 
 		, std::vector<Object>& objects, std::vector<VkCommandBuffer>& commandBuffers 
         , SyncObjects& syncObjects, uint32_t& currentFrame, bool& framebufferResized) {   
-
-        SDL_ShowCursor(SDL_DISABLE);
-        int windowWidth, windowHeight;
-        SDL_GetWindowSize(m_sdlWindow, &windowWidth, &windowHeight);
-        SDL_WarpMouseInWindow(m_sdlWindow, windowWidth / 2, windowHeight / 2);
 
         vkWaitForFences(device, 1, &syncObjects.m_inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
