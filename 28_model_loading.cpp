@@ -1686,7 +1686,7 @@ private:
         const auto viewMatrix = createViewMatrix(); 
 
 		for( auto& object : objects ) {
-	        object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	        // object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	        object.m_ubo.view = viewMatrix;
 			object.m_ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.1f, 10.0f);
 	        object.m_ubo.proj[1][1] *= -1;
