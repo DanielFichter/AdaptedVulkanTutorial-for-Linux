@@ -303,7 +303,8 @@ private:
 
     glm::vec3 m_eye{2.f, 2.f, 2.f};
     glm::vec3 m_cameraDirection{0.f};
-    glm::mat4 m_cameraRotation  = glm::rotate(glm::rotate(glm::mat4{1.f}, glm::radians(180.f - 45.f), {0.f, 0.f, 1.f}), glm::atan(glm::sqrt(8.f) / 2.f), {1.f, 0.f, 0.f});
+    float m_xAngle = 0;
+    float m_zAngle = 0;
 
     VkCommandPool m_commandPool;
     std::vector<VkCommandBuffer> m_commandBuffers;
@@ -449,8 +450,13 @@ private:
                     const auto yDiff = event.motion.yrel;
 
                     constexpr static float rotationSpeed = glm::radians(.1f);
-                    m_cameraRotation = glm::rotate(m_cameraRotation, rotationSpeed * yDiff, Axes::x);
-                    m_cameraRotation = glm::rotate(m_cameraRotation, rotationSpeed * xDiff, Axes::y);
+                    
+                    if (const auto newXAngle = m_xAngle + static_cast<float>(yDiff) * rotationSpeed; 
+                        newXAngle >= 0 && newXAngle <= std::numbers::pi_v<float>)
+                    {
+                        m_xAngle = newXAngle;
+                    }
+                    m_zAngle += static_cast<float>(xDiff) * rotationSpeed;
                 }
             }
 
@@ -1659,9 +1665,16 @@ private:
         }
     }
 
-    glm::mat4 createViewMatrix()
+    glm::mat4 createRotationMatrix() const
     {
-        return glm::translate(glm::transpose(m_cameraRotation), -m_eye);
+        const auto zRotation = glm::rotate(glm::mat4{1.f}, m_zAngle, Axes::z);
+        return glm::rotate(zRotation, m_xAngle, Axes::x);
+    }
+
+    glm::mat4 createViewMatrix() const
+    {
+        const auto rotationMatrix = createRotationMatrix();
+        return glm::translate(glm::transpose(rotationMatrix), -m_eye);
     }
 
     void updateUniformBuffer(uint32_t currentImage, SwapChain& swapChain, std::vector<Object>& objects ) { 
@@ -1700,7 +1713,8 @@ private:
                             , syncObjects.m_imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         constexpr static float cameraSpeed = .0002f;
-        m_eye += glm::vec3(cameraSpeed * m_cameraRotation * glm::vec4{m_cameraDirection, 1.f});
+        const auto rotationMatrix = createRotationMatrix();
+        m_eye += glm::vec3(cameraSpeed * rotationMatrix * glm::vec4{m_cameraDirection, 1.f});
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR ) {
             recreateSwapChain(window, surface, physicalDevice, device, vmaAllocator, swapChain, depthImage, renderPass);
