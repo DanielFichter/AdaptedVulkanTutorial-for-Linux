@@ -304,7 +304,7 @@ private:
 
     bool m_rotatingCamera = false;
 
-    glm::vec3 m_eye{2.f, 2.f, 2.f};
+    glm::vec3 m_eye{1.f, 1.f, 1.f};
     glm::vec3 m_cameraDirection{0.f};
     float m_xAngle = glm::atan(glm::sqrt(8.f) / 2.f);
     float m_zAngle = glm::radians(180.f - 45.f);
