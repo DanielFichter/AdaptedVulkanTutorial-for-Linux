@@ -57,6 +57,7 @@
 #include <optional>
 #include <set>
 #include <unordered_map>
+#include <numbers>
 
 
 const std::string m_MODEL_PATH = "models/viking_room.obj";
@@ -1707,6 +1708,10 @@ private:
 
 		for( auto& object : objects ) {
 	        // object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            constexpr static float cameraSpeed = .5f;
+            const auto zRotation = createZRotationMatrix();
+            m_eye += glm::vec3(cameraSpeed * dt * zRotation * glm::vec4{m_cameraDirection, 1.f});
+
 	        object.m_ubo.view = viewMatrix;
 			object.m_ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.1f, 10.0f);
 	        object.m_ubo.proj[1][1] *= -1;
@@ -1727,9 +1732,6 @@ private:
         VkResult result = vkAcquireNextImageKHR(device, swapChain.m_swapChain, UINT64_MAX
                             , syncObjects.m_imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-        constexpr static float cameraSpeed = .0004f;
-        const auto zRotation = createZRotationMatrix();
-        m_eye += glm::vec3(cameraSpeed * zRotation * glm::vec4{m_cameraDirection, 1.f});
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR ) {
             recreateSwapChain(window, surface, physicalDevice, device, vmaAllocator, swapChain, depthImage, renderPass);
