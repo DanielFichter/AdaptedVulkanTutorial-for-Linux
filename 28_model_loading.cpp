@@ -324,7 +324,6 @@ private:
             SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
         #endif
 
-        SDL_ShowCursor(SDL_DISABLE);
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
         m_sdlWindow = SDL_CreateWindow("Tutorial", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, window_flags);
     }
