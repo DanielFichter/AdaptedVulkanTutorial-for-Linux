@@ -421,13 +421,13 @@ private:
                     switch (event.key.keysym.sym)
                     {
                         case SDLK_w:
-                            m_cameraDirection = -Axes::z;
+                            m_cameraDirection = Axes::y;
                             break;
                         case SDLK_a:
                             m_cameraDirection = -Axes::x;
                             break;
                         case SDLK_s:
-                            m_cameraDirection = Axes::z;
+                            m_cameraDirection = -Axes::y;
                             break;
                         case SDLK_d:
                             m_cameraDirection = Axes::x;
@@ -1665,9 +1665,14 @@ private:
         }
     }
 
+    glm::mat4 createZRotationMatrix() const
+    {
+        return glm::rotate(glm::mat4{1.f}, m_zAngle, Axes::z);
+    }
+
     glm::mat4 createRotationMatrix() const
     {
-        const auto zRotation = glm::rotate(glm::mat4{1.f}, m_zAngle, Axes::z);
+        const auto zRotation = createZRotationMatrix();
         return glm::rotate(zRotation, m_xAngle, Axes::x);
     }
 
@@ -1713,8 +1718,8 @@ private:
                             , syncObjects.m_imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         constexpr static float cameraSpeed = .0002f;
-        const auto rotationMatrix = createRotationMatrix();
-        m_eye += glm::vec3(cameraSpeed * rotationMatrix * glm::vec4{m_cameraDirection, 1.f});
+        const auto zRotation = createZRotationMatrix();
+        m_eye += glm::vec3(cameraSpeed * zRotation * glm::vec4{m_cameraDirection, 1.f});
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR ) {
             recreateSwapChain(window, surface, physicalDevice, device, vmaAllocator, swapChain, depthImage, renderPass);
