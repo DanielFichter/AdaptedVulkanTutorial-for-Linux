@@ -1717,7 +1717,7 @@ private:
         VkResult result = vkAcquireNextImageKHR(device, swapChain.m_swapChain, UINT64_MAX
                             , syncObjects.m_imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-        constexpr static float cameraSpeed = .0002f;
+        constexpr static float cameraSpeed = .0004f;
         const auto zRotation = createZRotationMatrix();
         m_eye += glm::vec3(cameraSpeed * zRotation * glm::vec4{m_cameraDirection, 1.f});
 
