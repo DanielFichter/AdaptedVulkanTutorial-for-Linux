@@ -457,12 +457,12 @@ private:
 
                     constexpr static float rotationSpeed = glm::radians(.1f);
                     
-                    if (const auto newXAngle = m_xAngle + static_cast<float>(yDiff) * rotationSpeed; 
+                    if (const auto newXAngle = m_xAngle - static_cast<float>(yDiff) * rotationSpeed; 
                         newXAngle >= 0 && newXAngle <= std::numbers::pi_v<float>)
                     {
                         m_xAngle = newXAngle;
                     }
-                    m_zAngle += static_cast<float>(xDiff) * rotationSpeed;
+                    m_zAngle -= static_cast<float>(xDiff) * rotationSpeed;
                 }
 
                 if (event.type == SDL_MOUSEBUTTONDOWN)
