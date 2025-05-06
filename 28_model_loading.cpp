@@ -89,6 +89,7 @@ namespace Axes
 }
 
 const std::set<SDL_Keycode> movementKeys{SDLK_w, SDLK_a, SDLK_s, SDLK_d};
+const std::set<SDL_Keycode> rotationKeys{SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT};
 
 //ImGUI
 static void check_vk_result(VkResult err)
@@ -306,6 +307,16 @@ private:
 
     glm::vec3 m_eye{1.f, 1.f, 1.f};
     glm::vec3 m_cameraDirection{0.f};
+    enum class CameraRotationDirection {
+        positiveX,
+        negativeX,
+        positiveZ,
+        negativeZ,
+        none
+    };
+
+    CameraRotationDirection m_cameraRotationDirection = CameraRotationDirection::none;
+    
     float m_xAngle = glm::atan(glm::sqrt(8.f) / 2.f);
     float m_zAngle = glm::radians(180.f - 45.f);
 
@@ -435,6 +446,18 @@ private:
                         case SDLK_d:
                             m_cameraDirection = Axes::x;
                             break;
+                        case SDLK_UP:
+                            m_cameraRotationDirection = CameraRotationDirection::positiveX;
+                            break;
+                        case SDLK_DOWN:
+                            m_cameraRotationDirection = CameraRotationDirection::negativeX;
+                            break;
+                        case SDLK_RIGHT:
+                            m_cameraRotationDirection = CameraRotationDirection::negativeZ;
+                            break;
+                        case SDLK_LEFT:
+                            m_cameraRotationDirection = CameraRotationDirection::positiveZ;
+                            break;
                         case SDLK_ESCAPE:
                             SDL_SetRelativeMouseMode(SDL_FALSE);
                             m_rotatingCamera = false;
@@ -448,6 +471,10 @@ private:
                     if (movementKeys.contains(keyCode))
                     {
                         m_cameraDirection = glm::vec3{0.f};
+                    }
+                    else if (rotationKeys.contains(keyCode))
+                    {
+                        m_cameraRotationDirection = CameraRotationDirection::none;
                     }
                 }
 
@@ -1698,13 +1725,36 @@ private:
         return glm::translate(glm::transpose(rotationMatrix), -m_eye);
     }
 
+    void rotate(float dt)
+    {
+        constexpr static float rotationSpeed = glm::radians(50.f);
+        float rotationDiff = dt * rotationSpeed;
+        switch(m_cameraRotationDirection)
+        {
+            using enum CameraRotationDirection;
+            case negativeX:
+                m_xAngle -= rotationDiff;
+                break;
+            case positiveX:
+                m_xAngle += rotationDiff;
+                break;
+            case positiveZ:
+                m_zAngle += rotationDiff;
+                break;
+            case negativeZ:
+                m_zAngle -= rotationDiff;
+                break;
+        }
+    }
+
     void updateUniformBuffer(uint32_t currentImage, SwapChain& swapChain, std::vector<Object>& objects ) { 
         static auto startTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 		startTime = currentTime;
 
-        const auto viewMatrix = createViewMatrix(); 
+        const auto viewMatrix = createViewMatrix();
+        rotate(dt);
 
 		for( auto& object : objects ) {
 	        // object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
