@@ -57,7 +57,9 @@
 #include <optional>
 #include <set>
 #include <unordered_map>
+#include <format>
 
+using namespace std::string_literals;
 
 const std::string m_MODEL_PATH = "models/viking_room.obj";
 const std::string m_TEXTURE_PATH = "textures/viking_room.png";
@@ -80,6 +82,124 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
+
+namespace
+{
+    template<typename T> 
+    std::string toString(const std::vector<T> vector)
+    {
+        std::string result = "[";
+        for (size_t index = 0; index < vector.size(); index++)
+        {
+            if (index)
+            {
+                result += ", ";
+            }
+            result += vector[index];
+        }
+        return result + "]";
+    }
+
+    template<typename T>
+    std::ostream& operator<< (std::ostream& out, const std::vector<T>& vector)
+    {
+        return out << toString(vector);
+    }
+
+    std::string memoryPropertyFlagsToString(VkMemoryPropertyFlags memoryTypeFlags)
+    {
+        std::vector<std::string> flagNames;
+        
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) 
+        {
+            flagNames.emplace_back("DEVICE_LOCAL_BIT");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) 
+        {
+            flagNames.emplace_back("HOST_VISIBLE_BIT");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) 
+        {
+            flagNames.emplace_back("HOST_COHERENT_BIT");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_HOST_CACHED_BIT) 
+        {
+            flagNames.emplace_back("HOST_CACHED_BIT");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) 
+        {
+            flagNames.emplace_back("LAZILY_ALLOCATED_BIT");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_PROTECTED_BIT) 
+        {
+            flagNames.emplace_back("PROTECTED_BIT");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD) 
+        {
+            flagNames.emplace_back("DEVICE_COHERENT_BIT_AMD");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD) 
+        {
+            flagNames.emplace_back("DEVICE_UNCACHED_BIT_AMD");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV) 
+        {
+            flagNames.emplace_back("RDMA_CAPABLE_BIT_NV");
+        }
+        if (memoryTypeFlags | VK_MEMORY_PROPERTY_FLAG_BITS_MAX_ENUM) 
+        {
+            flagNames.emplace_back("FLAG_BITS_MAX_ENUM");
+        }
+        return toString(flagNames);
+    }
+
+    std::string toString(const VkMemoryType& memoryType)
+    {
+        return std::format("flags: {}, heap index: {}", memoryPropertyFlagsToString(memoryType.propertyFlags), std::to_string(memoryType.heapIndex));
+    }
+
+    std::ostream& operator<<(std::ostream& out, const VkMemoryType& memoryType)
+    {
+        return out << toString(memoryType);
+    }
+
+    std::string memoryHeapFlagsToString(VkMemoryHeapFlags memoryHeapFlags)
+    {
+        std::vector<std::string> flagNames;
+        if (memoryHeapFlags | VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) 
+        {
+            flagNames.emplace_back("DEVICE_LOCAL_BIT");
+        }
+        if (memoryHeapFlags | VK_MEMORY_HEAP_MULTI_INSTANCE_BIT) 
+        {
+            flagNames.emplace_back("MULTI_INSTANCE_BIT");
+        }
+        if (memoryHeapFlags | VK_MEMORY_HEAP_TILE_MEMORY_BIT_QCOM) 
+        {
+            flagNames.emplace_back("TILE_MEMORY_BIT_QCOM");
+        }
+        if (memoryHeapFlags | VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR) 
+        {
+            flagNames.emplace_back("MULTI_INSTANCE_BIT_KHR");
+        }
+        if (memoryHeapFlags | VK_MEMORY_HEAP_FLAG_BITS_MAX_ENUM) 
+        {
+            flagNames.emplace_back("FLAG_BITS_MAX_ENUM");
+        }
+
+        return toString(flagNames);
+    }
+
+    std::string toString(const VkMemoryHeap& memoryHeap)
+    {
+        return std::format("flags: {}, size: {}", memoryHeapFlagsToString(memoryHeap.flags), std::to_string(memoryHeap.size));
+    }
+
+    std::ostream& operator<<(std::ostream& out, const VkMemoryHeap& memoryHeap)
+    {
+        return out << toString(memoryHeap);
+    }
+}
 
 //ImGUI
 static void check_vk_result(VkResult err)
@@ -353,6 +473,7 @@ private:
         createSurface(m_instance, m_surface);
         pickPhysicalDevice(m_instance, m_deviceExtensions, m_surface, m_physicalDevice);
         createLogicalDevice(m_surface, m_physicalDevice, m_queueFamilies, m_validationLayers, m_deviceExtensions, m_device, m_graphicsQueue, m_presentQueue);
+        listAllHepasAndMemoryTpyes();
         initVMA(m_instance, m_physicalDevice, m_device, m_vmaAllocator);  
         createSwapChain(m_surface, m_physicalDevice, m_device, m_swapChain);
         createImageViews(m_device, m_swapChain);
@@ -670,6 +791,30 @@ private:
 
         vkGetDeviceQueue(device, queueFamilies.graphicsFamily.value(), 0, &graphicsQueue);
         vkGetDeviceQueue(device, queueFamilies.presentFamily.value(), 0, &presentQueue);
+    }
+
+    void listAllHepasAndMemoryTpyes() const
+    {
+        VkPhysicalDeviceMemoryProperties memoryProperties;
+        vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memoryProperties);
+        const uint32_t nMemoryTypes = memoryProperties.memoryTypeCount;
+        const auto memoryTypes = memoryProperties.memoryTypes;
+        std::cout << "memory types: \n";
+
+        for (uint32_t memoryTypeIndex = 0; memoryTypeIndex < nMemoryTypes; memoryTypeIndex++)
+        {
+            const auto& currentMemoryType = memoryTypes[memoryTypeIndex];
+            std::cout << "\t" << currentMemoryType << std::endl;
+        }
+
+        const uint32_t nHeaps = memoryProperties.memoryTypeCount;
+        const auto heaps = memoryProperties.memoryHeaps;
+        std::cout << "memory heaps: \n";
+        for (uint32_t heapIndex = 0; heapIndex < nHeaps; heapIndex++)
+        {
+            const auto& currentHeap = heaps[heapIndex];
+            std::cout << "\t" << currentHeap << std::endl;
+        }
     }
 
     void createSwapChain(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice, VkDevice device, SwapChain& swapChain) {
@@ -1951,7 +2096,6 @@ int main() {
     HelloTriangleApplication app;
 
     app.run();
-
 
     return EXIT_SUCCESS;
 }
