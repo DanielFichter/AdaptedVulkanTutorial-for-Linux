@@ -92,5 +92,6 @@
 		"valarray": "cpp",
 		"unordered_set": "cpp",
 		"stack": "cpp"
-	}
+	},
+	"sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json"
 }
