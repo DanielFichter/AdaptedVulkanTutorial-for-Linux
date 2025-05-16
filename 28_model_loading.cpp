@@ -379,6 +379,7 @@ private:
 
 	//Mesh of an object
     struct Geometry {
+        std::vector<Vertex>     m_uniqueVertices;
         std::vector<Vertex>     m_vertices;
         std::vector<uint32_t>   m_indices;
         VkBuffer                m_vertexBuffer;
@@ -1392,11 +1393,12 @@ private:
                 vertex.color = {1.0f, 1.0f, 1.0f};
 
                 if (uniqueVertices.count(vertex) == 0) {
-                    uniqueVertices[vertex] = static_cast<uint32_t>(geometry.m_vertices.size());
-                    geometry.m_vertices.push_back(vertex);
+                    uniqueVertices[vertex] = static_cast<uint32_t>(geometry.m_uniqueVertices.size());
+                    geometry.m_uniqueVertices.push_back(vertex);
                 }
 
                 geometry.m_indices.push_back(uniqueVertices[vertex]);
+                geometry.m_vertices.push_back(vertex);
             }
         }
     }
@@ -1708,12 +1710,12 @@ private:
 	            VkDeviceSize offsets[] = {0};
 	            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	            vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+	            vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_vertexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 	            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.m_pipelineLayout
 	                , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
 
-	            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_indices.size()), 1, 0, 0, 0);
+	            vkCmdDraw(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_vertices.size()), 1, 0, 0);
 			}
 
             //----------------------------------------------------------------------------------
