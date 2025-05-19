@@ -110,39 +110,39 @@ namespace
     {
         std::vector<std::string> flagNames;
         
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) 
         {
             flagNames.emplace_back("DEVICE_LOCAL_BIT");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) 
         {
             flagNames.emplace_back("HOST_VISIBLE_BIT");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) 
         {
             flagNames.emplace_back("HOST_COHERENT_BIT");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_HOST_CACHED_BIT) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) 
         {
             flagNames.emplace_back("HOST_CACHED_BIT");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) 
         {
             flagNames.emplace_back("LAZILY_ALLOCATED_BIT");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_PROTECTED_BIT) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_PROTECTED_BIT) 
         {
             flagNames.emplace_back("PROTECTED_BIT");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD) 
         {
             flagNames.emplace_back("DEVICE_COHERENT_BIT_AMD");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD) 
         {
             flagNames.emplace_back("DEVICE_UNCACHED_BIT_AMD");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV) 
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV) 
         {
             flagNames.emplace_back("RDMA_CAPABLE_BIT_NV");
         }
@@ -162,19 +162,19 @@ namespace
     std::string memoryHeapFlagsToString(VkMemoryHeapFlags memoryHeapFlags)
     {
         std::vector<std::string> flagNames;
-        if (memoryHeapFlags | VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) 
+        if (memoryHeapFlags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) 
         {
             flagNames.emplace_back("DEVICE_LOCAL_BIT");
         }
-        if (memoryHeapFlags | VK_MEMORY_HEAP_MULTI_INSTANCE_BIT) 
+        if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT) 
         {
             flagNames.emplace_back("MULTI_INSTANCE_BIT");
         }
-        if (memoryHeapFlags | VK_MEMORY_HEAP_TILE_MEMORY_BIT_QCOM) 
+        if (memoryHeapFlags & VK_MEMORY_HEAP_TILE_MEMORY_BIT_QCOM) 
         {
             flagNames.emplace_back("TILE_MEMORY_BIT_QCOM");
         }
-        if (memoryHeapFlags | VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR) 
+        if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR) 
         {
             flagNames.emplace_back("MULTI_INSTANCE_BIT_KHR");
         }
