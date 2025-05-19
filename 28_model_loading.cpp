@@ -146,10 +146,6 @@ namespace
         {
             flagNames.emplace_back("RDMA_CAPABLE_BIT_NV");
         }
-        if (memoryTypeFlags | VK_MEMORY_PROPERTY_FLAG_BITS_MAX_ENUM) 
-        {
-            flagNames.emplace_back("FLAG_BITS_MAX_ENUM");
-        }
         return toString(flagNames);
     }
 
@@ -181,10 +177,6 @@ namespace
         if (memoryHeapFlags | VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR) 
         {
             flagNames.emplace_back("MULTI_INSTANCE_BIT_KHR");
-        }
-        if (memoryHeapFlags | VK_MEMORY_HEAP_FLAG_BITS_MAX_ENUM) 
-        {
-            flagNames.emplace_back("FLAG_BITS_MAX_ENUM");
         }
 
         return toString(flagNames);
