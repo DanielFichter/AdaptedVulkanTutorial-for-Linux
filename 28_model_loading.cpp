@@ -170,10 +170,6 @@ namespace
         {
             flagNames.emplace_back("MULTI_INSTANCE");
         }
-        if (memoryHeapFlags & VK_MEMORY_HEAP_TILE_MEMORY_BIT_QCOM) 
-        {
-            flagNames.emplace_back("TILE_MEMORY_QCOM");
-        }
         if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR) 
         {
             flagNames.emplace_back("MULTI_INSTANCE_KHR");
