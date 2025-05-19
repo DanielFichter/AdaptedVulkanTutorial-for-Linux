@@ -112,39 +112,39 @@ namespace
         
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) 
         {
-            flagNames.emplace_back("DEVICE_LOCAL_BIT");
+            flagNames.emplace_back("DEVICE_LOCAL");
         }
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) 
         {
-            flagNames.emplace_back("HOST_VISIBLE_BIT");
+            flagNames.emplace_back("HOST_VISIBLE");
         }
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) 
         {
-            flagNames.emplace_back("HOST_COHERENT_BIT");
+            flagNames.emplace_back("HOST_COHERENT");
         }
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) 
         {
-            flagNames.emplace_back("HOST_CACHED_BIT");
+            flagNames.emplace_back("HOST_CACHED");
         }
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) 
         {
-            flagNames.emplace_back("LAZILY_ALLOCATED_BIT");
+            flagNames.emplace_back("LAZILY_ALLOCATED");
         }
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_PROTECTED_BIT) 
         {
-            flagNames.emplace_back("PROTECTED_BIT");
+            flagNames.emplace_back("PROTECTED");
         }
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD) 
         {
-            flagNames.emplace_back("DEVICE_COHERENT_BIT_AMD");
+            flagNames.emplace_back("DEVICE_COHERENT_AMD");
         }
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD) 
         {
-            flagNames.emplace_back("DEVICE_UNCACHED_BIT_AMD");
+            flagNames.emplace_back("DEVICE_UNCACHE_AMD");
         }
         if (memoryTypeFlags & VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV) 
         {
-            flagNames.emplace_back("RDMA_CAPABLE_BIT_NV");
+            flagNames.emplace_back("RDMA_CAPABLE_NV");
         }
         return toString(flagNames);
     }
@@ -164,19 +164,19 @@ namespace
         std::vector<std::string> flagNames;
         if (memoryHeapFlags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) 
         {
-            flagNames.emplace_back("DEVICE_LOCAL_BIT");
+            flagNames.emplace_back("DEVICE_LOCAL");
         }
         if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT) 
         {
-            flagNames.emplace_back("MULTI_INSTANCE_BIT");
+            flagNames.emplace_back("MULTI_INSTANCE");
         }
         if (memoryHeapFlags & VK_MEMORY_HEAP_TILE_MEMORY_BIT_QCOM) 
         {
-            flagNames.emplace_back("TILE_MEMORY_BIT_QCOM");
+            flagNames.emplace_back("TILE_MEMORY_QCOM");
         }
         if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR) 
         {
-            flagNames.emplace_back("MULTI_INSTANCE_BIT_KHR");
+            flagNames.emplace_back("MULTI_INSTANCE_KHR");
         }
 
         return toString(flagNames);
