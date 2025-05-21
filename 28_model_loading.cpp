@@ -1698,7 +1698,7 @@ private:
 	            VkDeviceSize offsets[] = {0};
 	            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	            vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_vertexBuffer, 0, VK_INDEX_TYPE_UINT32);
+	            // vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 	            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.m_pipelineLayout
 	                , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
