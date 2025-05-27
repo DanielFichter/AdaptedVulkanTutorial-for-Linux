@@ -355,10 +355,7 @@ private:
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
 
-    struct Pipeline {
-        VkPipelineLayout m_pipelineLayout;
-        VkPipeline m_pipeline;
-    } m_graphicsPipeline;
+    
 
     struct DepthImage {
         VkImage         m_depthImage;
@@ -400,6 +397,11 @@ private:
 		alignas(16) glm::mat4 proj;
 	};
 		
+    struct Pipeline {
+        VkPipelineLayout m_pipelineLayout;
+        VkPipeline m_pipeline;
+    };
+
 	//This holds all information an object with texture needs!	
 	struct Object {
 		UniformBufferObject m_ubo; //holds model, view and proj matrix
@@ -407,6 +409,7 @@ private:
 		Texture m_texture;
 		Geometry m_geometry;
 		std::vector<VkDescriptorSet> m_descriptorSets;
+        Pipeline m_pipeline;
 	};
 
 	std::vector<Object> m_objects;
@@ -454,6 +457,7 @@ private:
 			const ObjectCreateInformation& createInfo, std::vector<Object>& objects) {
 
 		Object object{{createInfo.m_modelMatrix}};
+        createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, object.m_pipeline);
 		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, createInfo.m_texturePath, object.m_texture);
         createTextureImageView(device, object.m_texture);
         createTextureSampler(physicalDevice, device, object.m_texture);
@@ -477,7 +481,6 @@ private:
         createImageViews(m_device, m_swapChain);
         createRenderPass(m_physicalDevice, m_device, m_swapChain, m_renderPass);
         createDescriptorSetLayout(m_device, m_descriptorSetLayout);
-        createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, m_graphicsPipeline);
         createCommandPool(m_surface, m_physicalDevice, m_device, m_commandPool);
         createDepthResources(m_physicalDevice, m_device, m_vmaAllocator, m_swapChain, m_depthImage);
         createFramebuffers(m_device, m_swapChain, m_depthImage, m_renderPass);
@@ -533,7 +536,7 @@ private:
 
                 drawFrame(m_sdlWindow, m_surface, m_physicalDevice, m_device, m_vmaAllocator
                     , m_graphicsQueue, m_presentQueue, m_swapChain, m_depthImage
-                    , m_renderPass, m_graphicsPipeline, m_objects, m_commandBuffers
+                    , m_renderPass, m_objects, m_commandBuffers
 					, m_syncObjects, m_currentFrame, m_framebufferResized);
             }
         }
@@ -564,8 +567,12 @@ private:
 
         cleanupSwapChain(m_device, m_vmaAllocator, m_swapChain, m_depthImage);
 
-        vkDestroyPipeline(m_device, m_graphicsPipeline.m_pipeline, nullptr);
-        vkDestroyPipelineLayout(m_device, m_graphicsPipeline.m_pipelineLayout, nullptr);
+        for (const auto& object: m_objects)
+        {
+            vkDestroyPipeline(m_device, object.m_pipeline.m_pipeline, nullptr);
+            vkDestroyPipelineLayout(m_device, object.m_pipeline.m_pipelineLayout, nullptr);
+        }
+        
         vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 
 
@@ -1662,7 +1669,7 @@ private:
     }
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex
-        , SwapChain& swapChain, VkRenderPass renderPass, Pipeline& graphicsPipeline
+        , SwapChain& swapChain, VkRenderPass renderPass
         , std::vector<Object>& objects //Geometry& geometry, std::vector<VkDescriptorSet>& descriptorSets
 		, uint32_t currentFrame) {
 
@@ -1689,40 +1696,42 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.m_pipeline);
+        
 
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = (float) swapChain.m_swapChainExtent.width;
-            viewport.height = (float) swapChain.m_swapChainExtent.height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float) swapChain.m_swapChainExtent.width;
+        viewport.height = (float) swapChain.m_swapChainExtent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-            VkRect2D scissor{};
-            scissor.offset = {0, 0};
-            scissor.extent = swapChain.m_swapChainExtent;
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = swapChain.m_swapChainExtent;
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-			for( auto& object : objects ) {
-	            VkBuffer vertexBuffers[] = {object.m_geometry.m_vertexBuffer};
-	            VkDeviceSize offsets[] = {0};
-	            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        for( auto& object : objects ) {
 
-	            // vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipeline);
+            VkBuffer vertexBuffers[] = {object.m_geometry.m_vertexBuffer};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.m_pipelineLayout
-	                , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
+            // vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-	            vkCmdDraw(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_vertices.size()), 1, 0, 0);
-			}
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipelineLayout
+                , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
 
-            //----------------------------------------------------------------------------------
-            ImGui::Render();
+            vkCmdDraw(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_vertices.size()), 1, 0, 0);
+        }
 
-            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
-            //----------------------------------------------------------------------------------
+        //----------------------------------------------------------------------------------
+        ImGui::Render();
+
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+        //----------------------------------------------------------------------------------
 
 
         vkCmdEndRenderPass(commandBuffer);
@@ -1771,7 +1780,7 @@ private:
 
     void drawFrame(SDL_Window* window, VkSurfaceKHR surface, VkPhysicalDevice physicalDevice
         , VkDevice device, VmaAllocator vmaAllocator, VkQueue graphicsQueue, VkQueue presentQueue
-        , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass, Pipeline& graphicsPipeline 
+        , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass
 		, std::vector<Object>& objects, std::vector<VkCommandBuffer>& commandBuffers 
         , SyncObjects& syncObjects, uint32_t& currentFrame, bool& framebufferResized) {   
 
@@ -1793,7 +1802,7 @@ private:
         vkResetFences(device, 1, &syncObjects.m_inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame],  0);
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, swapChain, renderPass, graphicsPipeline, objects, currentFrame);
+        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, swapChain, renderPass, objects, currentFrame);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
