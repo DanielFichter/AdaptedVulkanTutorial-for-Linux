@@ -59,8 +59,8 @@
 #include <unordered_map>
 
 
-const std::string m_MODEL_PATH = "models/viking_room.obj";
-const std::string m_TEXTURE_PATH = "textures/viking_room.png";
+const std::string m_MODEL_PATH = "models/cube.obj";
+const std::string m_TEXTURE_PATH = "textures/wood.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
