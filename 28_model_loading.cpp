@@ -61,30 +61,39 @@
 
 using namespace std::string_literals;
 
-const std::string m_MODEL_PATH = "models/cube.obj";
-const std::string m_TEXTURE_PATH = "textures/wood.jpg";
-
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
-const std::vector<const char*> m_validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
-std::vector<const char*> m_sdl_instance_extensions = {};
-
-const std::vector<const char*> m_deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-
 namespace
 {
+
+    struct ObjectCreateInformation
+    {
+        std::string m_modelPath;
+        std::string m_texturePath;
+        glm::mat4 m_modelMatrix;
+    };
+
+
+    const std::vector<ObjectCreateInformation> objetsCreateInformation{{"models/cube.obj", "textures/wood.jpg", glm::translate(glm::scale(glm::mat4{1.f}, {0.5, .5 , .5}), {2.f, 0.f, 0.f})},
+                                                                    {"models/cube.obj", "textures/plank.png", glm::translate(glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {-2.f, 0.f, 0.f})},
+                                                                    {"models/viking_room.obj", "textures/viking_room.png", glm::scale(glm::mat4{1.f}, {.5, .5, .5})}};
+
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+
+    const std::vector<const char*> m_validationLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
+
+    std::vector<const char*> m_sdl_instance_extensions = {};
+
+    const std::vector<const char*> m_deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+#ifdef NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif
+
     template<typename T> 
     std::string toString(const std::vector<T> vector)
     {
@@ -442,13 +451,13 @@ private:
 
 	void createObject( VkPhysicalDevice physicalDevice, VkDevice device, VmaAllocator vmaAllocator, 
 			VkQueue graphicsQueue, VkCommandPool commandPool, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout,
-			glm::mat4&& model, std::string modelPath, std::string texturePath, std::vector<Object>& objects) {
+			const ObjectCreateInformation& createInfo, std::vector<Object>& objects) {
 
-		Object object{{model}};
-		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, texturePath, object.m_texture);
+		Object object{{createInfo.m_modelMatrix}};
+		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, createInfo.m_texturePath, object.m_texture);
         createTextureImageView(device, object.m_texture);
         createTextureSampler(physicalDevice, device, object.m_texture);
-        loadModel(object.m_geometry, modelPath);
+        loadModel(object.m_geometry, createInfo.m_modelPath);
         createVertexBuffer(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, object.m_geometry);
         createIndexBuffer( physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, object.m_geometry);
         createUniformBuffers(physicalDevice, device, vmaAllocator, object.m_uniformBuffers);
@@ -474,8 +483,11 @@ private:
         createFramebuffers(m_device, m_swapChain, m_depthImage, m_renderPass);
         createDescriptorPool(m_device, m_descriptorPool);
 
-		createObject(m_physicalDevice, m_device, m_vmaAllocator, m_graphicsQueue, m_commandPool, 
-			m_descriptorPool, m_descriptorSetLayout, glm::mat4{1.0f}, m_MODEL_PATH, m_TEXTURE_PATH, m_objects);
+        for (const auto& objectCreateInfo: ::objetsCreateInformation)
+        {
+            createObject(m_physicalDevice, m_device, m_vmaAllocator, m_graphicsQueue, m_commandPool, 
+			    m_descriptorPool, m_descriptorSetLayout, objectCreateInfo, m_objects);
+        }
 	
 		createCommandBuffers(m_device, m_commandPool, m_commandBuffers);
         createSyncObjects(m_device, m_syncObjects);
