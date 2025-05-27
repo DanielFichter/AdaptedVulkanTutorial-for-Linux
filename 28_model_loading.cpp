@@ -57,7 +57,9 @@
 #include <optional>
 #include <set>
 #include <unordered_map>
+#include <format>
 
+using namespace std::string_literals;
 
 const std::string m_MODEL_PATH = "models/cube.obj";
 const std::string m_TEXTURE_PATH = "textures/wood.jpg";
@@ -80,6 +82,112 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
+
+namespace
+{
+    template<typename T> 
+    std::string toString(const std::vector<T> vector)
+    {
+        std::string result = "[";
+        for (size_t index = 0; index < vector.size(); index++)
+        {
+            if (index)
+            {
+                result += ", ";
+            }
+            result += vector[index];
+        }
+        return result + "]";
+    }
+
+    template<typename T>
+    std::ostream& operator<< (std::ostream& out, const std::vector<T>& vector)
+    {
+        return out << toString(vector);
+    }
+
+    std::string memoryPropertyFlagsToString(VkMemoryPropertyFlags memoryTypeFlags)
+    {
+        std::vector<std::string> flagNames;
+        
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) 
+        {
+            flagNames.emplace_back("DEVICE_LOCAL");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) 
+        {
+            flagNames.emplace_back("HOST_VISIBLE");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) 
+        {
+            flagNames.emplace_back("HOST_COHERENT");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) 
+        {
+            flagNames.emplace_back("HOST_CACHED");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) 
+        {
+            flagNames.emplace_back("LAZILY_ALLOCATED");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_PROTECTED_BIT) 
+        {
+            flagNames.emplace_back("PROTECTED");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD) 
+        {
+            flagNames.emplace_back("DEVICE_COHERENT_AMD");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD) 
+        {
+            flagNames.emplace_back("DEVICE_UNCACHE_AMD");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV) 
+        {
+            flagNames.emplace_back("RDMA_CAPABLE_NV");
+        }
+        return toString(flagNames);
+    }
+
+    std::string toString(const VkMemoryType& memoryType)
+    {
+        return std::format("flags: {}, heap index: {}", memoryPropertyFlagsToString(memoryType.propertyFlags), std::to_string(memoryType.heapIndex));
+    }
+
+    std::ostream& operator<<(std::ostream& out, const VkMemoryType& memoryType)
+    {
+        return out << toString(memoryType);
+    }
+
+    std::string memoryHeapFlagsToString(VkMemoryHeapFlags memoryHeapFlags)
+    {
+        std::vector<std::string> flagNames;
+        if (memoryHeapFlags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) 
+        {
+            flagNames.emplace_back("DEVICE_LOCAL");
+        }
+        if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT) 
+        {
+            flagNames.emplace_back("MULTI_INSTANCE");
+        }
+        if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR) 
+        {
+            flagNames.emplace_back("MULTI_INSTANCE_KHR");
+        }
+
+        return toString(flagNames);
+    }
+
+    std::string toString(const VkMemoryHeap& memoryHeap)
+    {
+        return std::format("flags: {}, size: {}", memoryHeapFlagsToString(memoryHeap.flags), std::to_string(memoryHeap.size));
+    }
+
+    std::ostream& operator<<(std::ostream& out, const VkMemoryHeap& memoryHeap)
+    {
+        return out << toString(memoryHeap);
+    }
+}
 
 //ImGUI
 static void check_vk_result(VkResult err)
@@ -259,6 +367,7 @@ private:
 
 	//Mesh of an object
     struct Geometry {
+        std::vector<Vertex>     m_uniqueVertices;
         std::vector<Vertex>     m_vertices;
         std::vector<uint32_t>   m_indices;
         VkBuffer                m_vertexBuffer;
@@ -353,6 +462,7 @@ private:
         createSurface(m_instance, m_surface);
         pickPhysicalDevice(m_instance, m_deviceExtensions, m_surface, m_physicalDevice);
         createLogicalDevice(m_surface, m_physicalDevice, m_queueFamilies, m_validationLayers, m_deviceExtensions, m_device, m_graphicsQueue, m_presentQueue);
+        listAllHepasAndMemoryTpyes();
         initVMA(m_instance, m_physicalDevice, m_device, m_vmaAllocator);  
         createSwapChain(m_surface, m_physicalDevice, m_device, m_swapChain);
         createImageViews(m_device, m_swapChain);
@@ -670,6 +780,30 @@ private:
 
         vkGetDeviceQueue(device, queueFamilies.graphicsFamily.value(), 0, &graphicsQueue);
         vkGetDeviceQueue(device, queueFamilies.presentFamily.value(), 0, &presentQueue);
+    }
+
+    void listAllHepasAndMemoryTpyes() const
+    {
+        VkPhysicalDeviceMemoryProperties memoryProperties;
+        vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memoryProperties);
+        const uint32_t nMemoryTypes = memoryProperties.memoryTypeCount;
+        const auto memoryTypes = memoryProperties.memoryTypes;
+        std::cout << "memory types: \n";
+
+        for (uint32_t memoryTypeIndex = 0; memoryTypeIndex < nMemoryTypes; memoryTypeIndex++)
+        {
+            const auto& currentMemoryType = memoryTypes[memoryTypeIndex];
+            std::cout << "\t" << currentMemoryType << std::endl;
+        }
+
+        const uint32_t nHeaps = memoryProperties.memoryTypeCount;
+        const auto heaps = memoryProperties.memoryHeaps;
+        std::cout << "memory heaps: \n";
+        for (uint32_t heapIndex = 0; heapIndex < nHeaps; heapIndex++)
+        {
+            const auto& currentHeap = heaps[heapIndex];
+            std::cout << "\t" << currentHeap << std::endl;
+        }
     }
 
     void createSwapChain(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice, VkDevice device, SwapChain& swapChain) {
@@ -1247,11 +1381,12 @@ private:
                 vertex.color = {1.0f, 1.0f, 1.0f};
 
                 if (uniqueVertices.count(vertex) == 0) {
-                    uniqueVertices[vertex] = static_cast<uint32_t>(geometry.m_vertices.size());
-                    geometry.m_vertices.push_back(vertex);
+                    uniqueVertices[vertex] = static_cast<uint32_t>(geometry.m_uniqueVertices.size());
+                    geometry.m_uniqueVertices.push_back(vertex);
                 }
 
                 geometry.m_indices.push_back(uniqueVertices[vertex]);
+                geometry.m_vertices.push_back(vertex);
             }
         }
     }
@@ -1563,12 +1698,12 @@ private:
 	            VkDeviceSize offsets[] = {0};
 	            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	            vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+	            // vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 	            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.m_pipelineLayout
 	                , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
 
-	            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_indices.size()), 1, 0, 0, 0);
+	            vkCmdDraw(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_vertices.size()), 1, 0, 0);
 			}
 
             //----------------------------------------------------------------------------------
@@ -1951,7 +2086,6 @@ int main() {
     HelloTriangleApplication app;
 
     app.run();
-
 
     return EXIT_SUCCESS;
 }
