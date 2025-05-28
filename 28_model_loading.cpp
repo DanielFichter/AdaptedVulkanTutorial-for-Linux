@@ -81,7 +81,7 @@ namespace
 
 
     const std::vector<ObjectCreateInformation> objetsCreateInformation{
-        {"models/cube.obj", "textures/wood.jpg", glm::translate(glm::scale(glm::mat4{1.f}, {0.5, .5 , .5}), {2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vertFade.spv", "shaders/fragBright.spv"}},
+        {"models/cube.obj", "textures/wood.jpg", glm::translate(glm::scale(glm::mat4{1.f}, {0.5, .5 , .5}), {2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}},
         {"models/cube.obj", "textures/plank.png", glm::translate(glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {-2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}},
         {"models/viking_room.obj", "textures/viking_room.png", glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {VK_CULL_MODE_NONE, "shaders/vert.spv", "shaders/frag.spv"}}
     };
