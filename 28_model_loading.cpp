@@ -64,17 +64,27 @@ using namespace std::string_literals;
 namespace
 {
 
+    struct PipelineCreateInformation
+    {
+        VkCullModeFlags cullMode;
+        std::string vertexShaderPath;
+        std::string fragmentShaderPath;
+    };
+
     struct ObjectCreateInformation
     {
         std::string m_modelPath;
         std::string m_texturePath;
         glm::mat4 m_modelMatrix;
+        PipelineCreateInformation m_piplineInfo;
     };
 
 
-    const std::vector<ObjectCreateInformation> objetsCreateInformation{{"models/cube.obj", "textures/wood.jpg", glm::translate(glm::scale(glm::mat4{1.f}, {0.5, .5 , .5}), {2.f, 0.f, 0.f})},
-                                                                    {"models/cube.obj", "textures/plank.png", glm::translate(glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {-2.f, 0.f, 0.f})},
-                                                                    {"models/viking_room.obj", "textures/viking_room.png", glm::scale(glm::mat4{1.f}, {.5, .5, .5})}};
+    const std::vector<ObjectCreateInformation> objetsCreateInformation{
+        {"models/cube.obj", "textures/wood.jpg", glm::translate(glm::scale(glm::mat4{1.f}, {0.5, .5 , .5}), {2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vertFade.spv", "shaders/fragBright.spv"}},
+        {"models/cube.obj", "textures/plank.png", glm::translate(glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {-2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}},
+        {"models/viking_room.obj", "textures/viking_room.png", glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {VK_CULL_MODE_NONE, "shaders/vert.spv", "shaders/frag.spv"}}
+    };
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -457,7 +467,7 @@ private:
 			const ObjectCreateInformation& createInfo, std::vector<Object>& objects) {
 
 		Object object{{createInfo.m_modelMatrix}};
-        createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, object.m_pipeline);
+        createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, createInfo.m_piplineInfo, object.m_pipeline);
 		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, createInfo.m_texturePath, object.m_texture);
         createTextureImageView(device, object.m_texture);
         createTextureSampler(physicalDevice, device, object.m_texture);
@@ -970,10 +980,10 @@ private:
     }
 
     void createGraphicsPipeline(VkDevice device, VkRenderPass renderPass
-        , VkDescriptorSetLayout descriptorSetLayout, Pipeline& graphicsPipeline) {
+        , VkDescriptorSetLayout descriptorSetLayout, PipelineCreateInformation createInfo, Pipeline& graphicsPipeline) {
 
-        auto vertShaderCode = readFile("shaders/vert.spv");
-        auto fragShaderCode = readFile("shaders/frag.spv");
+        auto vertShaderCode = readFile(createInfo.vertexShaderPath);
+        auto fragShaderCode = readFile(createInfo.fragmentShaderPath);
 
         VkShaderModule vertShaderModule = createShaderModule(device, vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(device, fragShaderCode);
@@ -1019,7 +1029,7 @@ private:
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_NONE; // VK_CULL_MODE_BACK_BIT;
+        rasterizer.cullMode = createInfo.cullMode; // VK_CULL_MODE_BACK_BIT;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
