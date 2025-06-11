@@ -2,15 +2,16 @@
 struct AssembledVertex
 {
     float3 position : POSITION;
-    float3 color    : COLOR;
+    float3 normal    : NORMAL;
     float2 uv       : UV;
 };
 
 
 struct CoarseVertex
 {
-    float3 fragColor;
+    float3 normal;
     float2 uv;
+    float3 worldPosition;
 };
 
 
@@ -36,14 +37,16 @@ VertexStageOutput vertexMain(AssembledVertex assembledVertex)
     VertexStageOutput output;
 
     float3 position = assembledVertex.position;
-    float3 color    = assembledVertex.color;
+    float3 normal    = assembledVertex.normal;
     float2 uv       = assembledVertex.uv;
 
     float3 worldPosition = mul(gParams.model, float4(position, 1.0)).xyz;
-    float3 viewPosition = mul(gParams.view, float4(worldPosition, 1.0)).xyz;   
+    float3 viewPosition = mul(gParams.view, float4(worldPosition, 1.0)).xyz;
+    float3 worldNormal = mul(gParams.model, float4(normal, 1.0)).xyz;
 
-    output.coarseVertex.fragColor   = color;
-    output.coarseVertex.uv          = uv;
+    output.coarseVertex.normal   = worldNormal;
+    output.coarseVertex.uv = uv;
+    output.coarseVertex.worldPosition = worldPosition;
     output.sv_position = mul(gParams.proj, float4(viewPosition, 1.0));
 
     return output;
