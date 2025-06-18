@@ -57,29 +57,156 @@
 #include <optional>
 #include <set>
 #include <unordered_map>
+#include <format>
+
+using namespace std::string_literals;
+
+namespace
+{
+
+    struct PipelineCreateInformation
+    {
+        VkCullModeFlags cullMode;
+        std::string vertexShaderPath;
+        std::string fragmentShaderPath;
+    };
+
+    struct ObjectCreateInformation
+    {
+        std::string m_modelPath;
+        std::string m_texturePath;
+        glm::mat4 m_modelMatrix;
+        PipelineCreateInformation m_piplineInfo;
+    };
 
 
-const std::string m_MODEL_PATH = "models/viking_room.obj";
-const std::string m_TEXTURE_PATH = "textures/viking_room.png";
+    const std::vector<ObjectCreateInformation> objetsCreateInformation{
+        {"models/cube.obj", "textures/wood.jpg", glm::translate(glm::scale(glm::mat4{1.f}, {0.5, .5 , .5}), {2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}},
+        {"models/cube.obj", "textures/plank.png", glm::translate(glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {-2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}},
+        {"models/viking_room.obj", "textures/viking_room.png", glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {VK_CULL_MODE_NONE, "shaders/vert.spv", "shaders/frag.spv"}}
+    };
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
+    const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector<const char*> m_validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
+    const std::vector<const char*> m_validationLayers = {
+        "VK_LAYER_KHRONOS_validation"
+    };
 
-std::vector<const char*> m_sdl_instance_extensions = {};
+    std::vector<const char*> m_sdl_instance_extensions = {};
 
-const std::vector<const char*> m_deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+    const std::vector<const char*> m_deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
 
 #ifdef NDEBUG
-const bool enableValidationLayers = false;
+    const bool enableValidationLayers = false;
 #else
-const bool enableValidationLayers = true;
+    const bool enableValidationLayers = true;
 #endif
 
+    template<typename T> 
+    std::string toString(const std::vector<T> vector)
+    {
+        std::string result = "[";
+        for (size_t index = 0; index < vector.size(); index++)
+        {
+            if (index)
+            {
+                result += ", ";
+            }
+            result += vector[index];
+        }
+        return result + "]";
+    }
+
+    template<typename T>
+    std::ostream& operator<< (std::ostream& out, const std::vector<T>& vector)
+    {
+        return out << toString(vector);
+    }
+
+    std::string memoryPropertyFlagsToString(VkMemoryPropertyFlags memoryTypeFlags)
+    {
+        std::vector<std::string> flagNames;
+        
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) 
+        {
+            flagNames.emplace_back("DEVICE_LOCAL");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) 
+        {
+            flagNames.emplace_back("HOST_VISIBLE");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) 
+        {
+            flagNames.emplace_back("HOST_COHERENT");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) 
+        {
+            flagNames.emplace_back("HOST_CACHED");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) 
+        {
+            flagNames.emplace_back("LAZILY_ALLOCATED");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_PROTECTED_BIT) 
+        {
+            flagNames.emplace_back("PROTECTED");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD) 
+        {
+            flagNames.emplace_back("DEVICE_COHERENT_AMD");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD) 
+        {
+            flagNames.emplace_back("DEVICE_UNCACHE_AMD");
+        }
+        if (memoryTypeFlags & VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV) 
+        {
+            flagNames.emplace_back("RDMA_CAPABLE_NV");
+        }
+        return toString(flagNames);
+    }
+
+    std::string toString(const VkMemoryType& memoryType)
+    {
+        return std::format("flags: {}, heap index: {}", memoryPropertyFlagsToString(memoryType.propertyFlags), std::to_string(memoryType.heapIndex));
+    }
+
+    std::ostream& operator<<(std::ostream& out, const VkMemoryType& memoryType)
+    {
+        return out << toString(memoryType);
+    }
+
+    std::string memoryHeapFlagsToString(VkMemoryHeapFlags memoryHeapFlags)
+    {
+        std::vector<std::string> flagNames;
+        if (memoryHeapFlags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) 
+        {
+            flagNames.emplace_back("DEVICE_LOCAL");
+        }
+        if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT) 
+        {
+            flagNames.emplace_back("MULTI_INSTANCE");
+        }
+        if (memoryHeapFlags & VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR) 
+        {
+            flagNames.emplace_back("MULTI_INSTANCE_KHR");
+        }
+
+        return toString(flagNames);
+    }
+
+    std::string toString(const VkMemoryHeap& memoryHeap)
+    {
+        return std::format("flags: {}, size: {}", memoryHeapFlagsToString(memoryHeap.flags), std::to_string(memoryHeap.size));
+    }
+
+    std::ostream& operator<<(std::ostream& out, const VkMemoryHeap& memoryHeap)
+    {
+        return out << toString(memoryHeap);
+    }
+}
 
 //ImGUI
 static void check_vk_result(VkResult err)
@@ -238,10 +365,7 @@ private:
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
 
-    struct Pipeline {
-        VkPipelineLayout m_pipelineLayout;
-        VkPipeline m_pipeline;
-    } m_graphicsPipeline;
+    
 
     struct DepthImage {
         VkImage         m_depthImage;
@@ -259,6 +383,7 @@ private:
 
 	//Mesh of an object
     struct Geometry {
+        std::vector<Vertex>     m_uniqueVertices;
         std::vector<Vertex>     m_vertices;
         std::vector<uint32_t>   m_indices;
         VkBuffer                m_vertexBuffer;
@@ -282,6 +407,11 @@ private:
 		alignas(16) glm::mat4 proj;
 	};
 		
+    struct Pipeline {
+        VkPipelineLayout m_pipelineLayout;
+        VkPipeline m_pipeline;
+    };
+
 	//This holds all information an object with texture needs!	
 	struct Object {
 		UniformBufferObject m_ubo; //holds model, view and proj matrix
@@ -289,6 +419,7 @@ private:
 		Texture m_texture;
 		Geometry m_geometry;
 		std::vector<VkDescriptorSet> m_descriptorSets;
+        Pipeline m_pipeline;
 	};
 
 	std::vector<Object> m_objects;
@@ -333,13 +464,14 @@ private:
 
 	void createObject( VkPhysicalDevice physicalDevice, VkDevice device, VmaAllocator vmaAllocator, 
 			VkQueue graphicsQueue, VkCommandPool commandPool, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout,
-			glm::mat4&& model, std::string modelPath, std::string texturePath, std::vector<Object>& objects) {
+			const ObjectCreateInformation& createInfo, std::vector<Object>& objects) {
 
-		Object object{{model}};
-		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, texturePath, object.m_texture);
+		Object object{{createInfo.m_modelMatrix}};
+        createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, createInfo.m_piplineInfo, object.m_pipeline);
+		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, createInfo.m_texturePath, object.m_texture);
         createTextureImageView(device, object.m_texture);
         createTextureSampler(physicalDevice, device, object.m_texture);
-        loadModel(object.m_geometry, modelPath);
+        loadModel(object.m_geometry, createInfo.m_modelPath);
         createVertexBuffer(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, object.m_geometry);
         createIndexBuffer( physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, object.m_geometry);
         createUniformBuffers(physicalDevice, device, vmaAllocator, object.m_uniformBuffers);
@@ -353,19 +485,22 @@ private:
         createSurface(m_instance, m_surface);
         pickPhysicalDevice(m_instance, m_deviceExtensions, m_surface, m_physicalDevice);
         createLogicalDevice(m_surface, m_physicalDevice, m_queueFamilies, m_validationLayers, m_deviceExtensions, m_device, m_graphicsQueue, m_presentQueue);
+        listAllHepasAndMemoryTpyes();
         initVMA(m_instance, m_physicalDevice, m_device, m_vmaAllocator);  
         createSwapChain(m_surface, m_physicalDevice, m_device, m_swapChain);
         createImageViews(m_device, m_swapChain);
         createRenderPass(m_physicalDevice, m_device, m_swapChain, m_renderPass);
         createDescriptorSetLayout(m_device, m_descriptorSetLayout);
-        createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, m_graphicsPipeline);
         createCommandPool(m_surface, m_physicalDevice, m_device, m_commandPool);
         createDepthResources(m_physicalDevice, m_device, m_vmaAllocator, m_swapChain, m_depthImage);
         createFramebuffers(m_device, m_swapChain, m_depthImage, m_renderPass);
         createDescriptorPool(m_device, m_descriptorPool);
 
-		createObject(m_physicalDevice, m_device, m_vmaAllocator, m_graphicsQueue, m_commandPool, 
-			m_descriptorPool, m_descriptorSetLayout, glm::mat4{1.0f}, m_MODEL_PATH, m_TEXTURE_PATH, m_objects);
+        for (const auto& objectCreateInfo: ::objetsCreateInformation)
+        {
+            createObject(m_physicalDevice, m_device, m_vmaAllocator, m_graphicsQueue, m_commandPool, 
+			    m_descriptorPool, m_descriptorSetLayout, objectCreateInfo, m_objects);
+        }
 	
 		createCommandBuffers(m_device, m_commandPool, m_commandBuffers);
         createSyncObjects(m_device, m_syncObjects);
@@ -411,7 +546,7 @@ private:
 
                 drawFrame(m_sdlWindow, m_surface, m_physicalDevice, m_device, m_vmaAllocator
                     , m_graphicsQueue, m_presentQueue, m_swapChain, m_depthImage
-                    , m_renderPass, m_graphicsPipeline, m_objects, m_commandBuffers
+                    , m_renderPass, m_objects, m_commandBuffers
 					, m_syncObjects, m_currentFrame, m_framebufferResized);
             }
         }
@@ -442,8 +577,12 @@ private:
 
         cleanupSwapChain(m_device, m_vmaAllocator, m_swapChain, m_depthImage);
 
-        vkDestroyPipeline(m_device, m_graphicsPipeline.m_pipeline, nullptr);
-        vkDestroyPipelineLayout(m_device, m_graphicsPipeline.m_pipelineLayout, nullptr);
+        for (const auto& object: m_objects)
+        {
+            vkDestroyPipeline(m_device, object.m_pipeline.m_pipeline, nullptr);
+            vkDestroyPipelineLayout(m_device, object.m_pipeline.m_pipelineLayout, nullptr);
+        }
+        
         vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 
 
@@ -672,6 +811,30 @@ private:
         vkGetDeviceQueue(device, queueFamilies.presentFamily.value(), 0, &presentQueue);
     }
 
+    void listAllHepasAndMemoryTpyes() const
+    {
+        VkPhysicalDeviceMemoryProperties memoryProperties;
+        vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memoryProperties);
+        const uint32_t nMemoryTypes = memoryProperties.memoryTypeCount;
+        const auto memoryTypes = memoryProperties.memoryTypes;
+        std::cout << "memory types: \n";
+
+        for (uint32_t memoryTypeIndex = 0; memoryTypeIndex < nMemoryTypes; memoryTypeIndex++)
+        {
+            const auto& currentMemoryType = memoryTypes[memoryTypeIndex];
+            std::cout << "\t" << currentMemoryType << std::endl;
+        }
+
+        const uint32_t nHeaps = memoryProperties.memoryTypeCount;
+        const auto heaps = memoryProperties.memoryHeaps;
+        std::cout << "memory heaps: \n";
+        for (uint32_t heapIndex = 0; heapIndex < nHeaps; heapIndex++)
+        {
+            const auto& currentHeap = heaps[heapIndex];
+            std::cout << "\t" << currentHeap << std::endl;
+        }
+    }
+
     void createSwapChain(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice, VkDevice device, SwapChain& swapChain) {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, surface);
 
@@ -817,10 +980,10 @@ private:
     }
 
     void createGraphicsPipeline(VkDevice device, VkRenderPass renderPass
-        , VkDescriptorSetLayout descriptorSetLayout, Pipeline& graphicsPipeline) {
+        , VkDescriptorSetLayout descriptorSetLayout, PipelineCreateInformation createInfo, Pipeline& graphicsPipeline) {
 
-        auto vertShaderCode = readFile("shaders/vert.spv");
-        auto fragShaderCode = readFile("shaders/frag.spv");
+        auto vertShaderCode = readFile(createInfo.vertexShaderPath);
+        auto fragShaderCode = readFile(createInfo.fragmentShaderPath);
 
         VkShaderModule vertShaderModule = createShaderModule(device, vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(device, fragShaderCode);
@@ -866,7 +1029,7 @@ private:
         rasterizer.rasterizerDiscardEnable = VK_FALSE;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
-        rasterizer.cullMode = VK_CULL_MODE_NONE; // VK_CULL_MODE_BACK_BIT;
+        rasterizer.cullMode = createInfo.cullMode; // VK_CULL_MODE_BACK_BIT;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -1251,11 +1414,12 @@ private:
                 };
 
                 if (uniqueVertices.count(vertex) == 0) {
-                    uniqueVertices[vertex] = static_cast<uint32_t>(geometry.m_vertices.size());
-                    geometry.m_vertices.push_back(vertex);
+                    uniqueVertices[vertex] = static_cast<uint32_t>(geometry.m_uniqueVertices.size());
+                    geometry.m_uniqueVertices.push_back(vertex);
                 }
 
                 geometry.m_indices.push_back(uniqueVertices[vertex]);
+                geometry.m_vertices.push_back(vertex);
             }
         }
     }
@@ -1519,7 +1683,7 @@ private:
     }
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex
-        , SwapChain& swapChain, VkRenderPass renderPass, Pipeline& graphicsPipeline
+        , SwapChain& swapChain, VkRenderPass renderPass
         , std::vector<Object>& objects //Geometry& geometry, std::vector<VkDescriptorSet>& descriptorSets
 		, uint32_t currentFrame) {
 
@@ -1546,40 +1710,42 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.m_pipeline);
+        
 
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = (float) swapChain.m_swapChainExtent.width;
-            viewport.height = (float) swapChain.m_swapChainExtent.height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float) swapChain.m_swapChainExtent.width;
+        viewport.height = (float) swapChain.m_swapChainExtent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-            VkRect2D scissor{};
-            scissor.offset = {0, 0};
-            scissor.extent = swapChain.m_swapChainExtent;
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = swapChain.m_swapChainExtent;
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-			for( auto& object : objects ) {
-	            VkBuffer vertexBuffers[] = {object.m_geometry.m_vertexBuffer};
-	            VkDeviceSize offsets[] = {0};
-	            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        for( auto& object : objects ) {
 
-	            vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipeline);
+            VkBuffer vertexBuffers[] = {object.m_geometry.m_vertexBuffer};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-	            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.m_pipelineLayout
-	                , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
+            // vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-	            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_indices.size()), 1, 0, 0, 0);
-			}
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipelineLayout
+                , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
 
-            //----------------------------------------------------------------------------------
-            ImGui::Render();
+            vkCmdDraw(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_vertices.size()), 1, 0, 0);
+        }
 
-            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
-            //----------------------------------------------------------------------------------
+        //----------------------------------------------------------------------------------
+        ImGui::Render();
+
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+        //----------------------------------------------------------------------------------
 
 
         vkCmdEndRenderPass(commandBuffer);
@@ -1628,7 +1794,7 @@ private:
 
     void drawFrame(SDL_Window* window, VkSurfaceKHR surface, VkPhysicalDevice physicalDevice
         , VkDevice device, VmaAllocator vmaAllocator, VkQueue graphicsQueue, VkQueue presentQueue
-        , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass, Pipeline& graphicsPipeline 
+        , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass
 		, std::vector<Object>& objects, std::vector<VkCommandBuffer>& commandBuffers 
         , SyncObjects& syncObjects, uint32_t& currentFrame, bool& framebufferResized) {   
 
@@ -1650,7 +1816,7 @@ private:
         vkResetFences(device, 1, &syncObjects.m_inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame],  0);
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, swapChain, renderPass, graphicsPipeline, objects, currentFrame);
+        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, swapChain, renderPass, objects, currentFrame);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1955,7 +2121,6 @@ int main() {
     HelloTriangleApplication app;
 
     app.run();
-
 
     return EXIT_SUCCESS;
 }
