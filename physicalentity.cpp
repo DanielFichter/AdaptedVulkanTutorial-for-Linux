@@ -11,8 +11,8 @@ bool PhysicalEntity::collide(const PhysicalEntity &other)
 
     const auto upperBoundary = position.y + height / 2;
     const auto otherUpperBoundary = other.position.y + other.height / 2;
-    const auto lowerBoundary = position.y + height / 2;
-    const auto otherLowerBoundary = other.position.y + other.height / 2;
+    const auto lowerBoundary = position.y - height / 2;
+    const auto otherLowerBoundary = other.position.y - other.height / 2;
     const bool overlapY = upperBoundary >= otherLowerBoundary && lowerBoundary <= otherUpperBoundary;
 
     const auto frontBoundary = position.z + length / 2;
