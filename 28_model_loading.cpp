@@ -41,7 +41,9 @@
 #include "imgui.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_vulkan.h"
-
+#include "player.hpp"
+#include "movingdirection.hpp"
+#include "displayablephysicalentity.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -58,7 +60,6 @@
 #include <set>
 #include <unordered_map>
 #include <format>
-#include <numbers>
 
 using namespace std::string_literals;
 
@@ -207,12 +208,6 @@ namespace
         return out << toString(memoryHeap);
     }
 }
-namespace Axes
-{
-    constexpr glm::vec3 x {1.f, 0.f, 0.f};
-    constexpr glm::vec3 y {0.f, 1.f, 0.f};
-    constexpr glm::vec3 z {0.f, 0.f, 1.f};
-}
 
 const std::set<SDL_Keycode> movementKeys{SDLK_w, SDLK_a, SDLK_s, SDLK_d};
 const std::set<SDL_Keycode> rotationKeys{SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT};
@@ -334,6 +329,104 @@ namespace std {
 
 //--------------------------------------------------------------------------------------------------
 
+namespace
+{
+    
+
+struct SwapChain
+{
+    VkSwapchainKHR m_swapChain;
+    std::vector<VkImage> m_swapChainImages;
+    VkFormat m_swapChainImageFormat;
+    VkExtent2D m_swapChainExtent;
+    std::vector<VkImageView> m_swapChainImageViews;
+    std::vector<VkFramebuffer> m_swapChainFramebuffers;
+};
+
+struct DepthImage
+{
+    VkImage m_depthImage;
+    VmaAllocation m_depthImageAllocation;
+    VkImageView m_depthImageView;
+};
+
+// The texture of an object
+struct Texture
+{
+    VkImage m_textureImage;
+    VmaAllocation m_textureImageAllocation;
+    VkImageView m_textureImageView;
+    VkSampler m_textureSampler;
+};
+
+// Mesh of an object
+struct Geometry
+{
+    std::vector<Vertex> m_uniqueVertices;
+    std::vector<Vertex> m_vertices;
+    std::vector<uint32_t> m_indices;
+    VkBuffer m_vertexBuffer;
+    VmaAllocation m_vertexBufferAllocation;
+    VkBuffer m_indexBuffer;
+    VmaAllocation m_indexBufferAllocation;
+};
+
+// Uniform buffers of an object
+struct UniformBuffers
+{
+    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VmaAllocation> m_uniformBuffersAllocation;
+    std::vector<void *> m_uniformBuffersMapped;
+};
+
+VkDescriptorPool m_descriptorPool;
+
+struct UniformBufferObject
+{
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
+};
+
+struct Pipeline
+{
+    VkPipelineLayout m_pipelineLayout;
+    VkPipeline m_pipeline;
+};
+
+// This holds all information an object with texture needs!
+struct DisplayObject
+{
+    UniformBufferObject m_ubo; // holds model, view and proj matrix
+    UniformBuffers m_uniformBuffers;
+    Texture m_texture;
+    Geometry m_geometry;
+    std::vector<VkDescriptorSet> m_descriptorSets;
+    Pipeline m_pipeline;
+};
+
+// TODO: move DisplayablePhysicalEntity into own file
+class DisplayablePhysicalEntity: public PhysicalEntity
+{
+public:
+    DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object);
+
+private:
+    void translate(const glm::vec3&);
+    DisplayObject& object;
+};
+
+DisplayablePhysicalEntity::DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object) : PhysicalEntity(object.m_ubo.model * glm::vec4{0.f, 0.f, 0.f, 1.f}, width, height, length), object{object}
+{
+}
+
+void DisplayablePhysicalEntity::translate(const glm::vec3 & translation)
+{
+    position += translation;
+    object.m_ubo.model = glm::translate(object.m_ubo.model, translation);
+}
+
+}
 
 class HelloTriangleApplication {
 public:
@@ -362,81 +455,22 @@ private:
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
 
-    struct SwapChain {
-        VkSwapchainKHR m_swapChain;
-        std::vector<VkImage> m_swapChainImages;
-        VkFormat m_swapChainImageFormat;
-        VkExtent2D m_swapChainExtent;
-        std::vector<VkImageView> m_swapChainImageViews;
-        std::vector<VkFramebuffer> m_swapChainFramebuffers;
-    } m_swapChain;
+    SwapChain m_swapChain;
+    DepthImage m_depthImage;
+
+    Player player{{1.f, 1.f, 1.f}, .5f, 2.f, .5f, .5f};
+    std::vector<PhysicalEntity> blocks;
 
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
 
-    
-
-    struct DepthImage {
-        VkImage         m_depthImage;
-        VmaAllocation   m_depthImageAllocation;
-        VkImageView     m_depthImageView;
-    } m_depthImage;
-
-	//The texture of an object
-    struct Texture {
-        VkImage         m_textureImage;
-        VmaAllocation   m_textureImageAllocation;
-        VkImageView     m_textureImageView;
-        VkSampler       m_textureSampler;
-    };
-
-	//Mesh of an object
-    struct Geometry {
-        std::vector<Vertex>     m_uniqueVertices;
-        std::vector<Vertex>     m_vertices;
-        std::vector<uint32_t>   m_indices;
-        VkBuffer                m_vertexBuffer;
-        VmaAllocation           m_vertexBufferAllocation;
-        VkBuffer                m_indexBuffer;
-        VmaAllocation           m_indexBufferAllocation;
-    };
-
-	//Uniform buffers of an object
-    struct UniformBuffers {
-        std::vector<VkBuffer>       m_uniformBuffers;
-        std::vector<VmaAllocation>  m_uniformBuffersAllocation;
-        std::vector<void*>          m_uniformBuffersMapped;
-    };
-
-    VkDescriptorPool m_descriptorPool;
-
-	struct UniformBufferObject {
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
-	};
-		
-    struct Pipeline {
-        VkPipelineLayout m_pipelineLayout;
-        VkPipeline m_pipeline;
-    };
-
-	//This holds all information an object with texture needs!	
-	struct Object {
-		UniformBufferObject m_ubo; //holds model, view and proj matrix
-		UniformBuffers m_uniformBuffers;
-		Texture m_texture;
-		Geometry m_geometry;
-		std::vector<VkDescriptorSet> m_descriptorSets;
-        Pipeline m_pipeline;
-	};
-
-	std::vector<Object> m_objects;
+	std::vector<DisplayObject> m_objects;
+    std::vector<std::unique_ptr<PhysicalEntity>> m_displayableEntities;
 
     bool m_rotatingCamera = false;
 
     glm::vec3 m_eye{1.f, 1.f, 1.f};
-    glm::vec3 m_cameraDirection{0.f};
+    MovingDirection m_cameraDirection{MovingDirection::none};
     enum class CameraRotationDirection {
         positiveX,
         negativeX,
@@ -444,11 +478,6 @@ private:
         negativeZ,
         none
     };
-
-    CameraRotationDirection m_cameraRotationDirection = CameraRotationDirection::none;
-    
-    float m_xAngle = glm::atan(glm::sqrt(8.f) / 2.f);
-    float m_zAngle = glm::radians(180.f - 45.f);
 
     VkCommandPool m_commandPool;
     std::vector<VkCommandBuffer> m_commandBuffers;
@@ -490,9 +519,8 @@ private:
 
 	void createObject( VkPhysicalDevice physicalDevice, VkDevice device, VmaAllocator vmaAllocator, 
 			VkQueue graphicsQueue, VkCommandPool commandPool, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout,
-			const ObjectCreateInformation& createInfo, std::vector<Object>& objects) {
-
-		Object object{{createInfo.m_modelMatrix}};
+			const ObjectCreateInformation& createInfo, std::vector<DisplayObject>& objects) {
+		DisplayObject object{{createInfo.m_modelMatrix}};
         createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, createInfo.m_piplineInfo, object.m_pipeline);
 		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, createInfo.m_texturePath, object.m_texture);
         createTextureImageView(device, object.m_texture);
@@ -503,6 +531,8 @@ private:
         createUniformBuffers(physicalDevice, device, vmaAllocator, object.m_uniformBuffers);
         createDescriptorSets(device, object.m_texture, descriptorSetLayout, object.m_uniformBuffers, descriptorPool, object.m_descriptorSets);
 		objects.push_back(object);
+        auto pDisplayEntity = std::make_unique<DisplayablePhysicalEntity>(1.f, 1.f, 1.f, object);
+        m_displayableEntities.emplace_back(std::move(pDisplayEntity));
 	}
 
     void initVulkan() {
@@ -566,20 +596,21 @@ private:
                 {
                     switch (event.key.keysym.sym)
                     {
+                        using enum MovingDirection;
                         case SDLK_w:
-                            m_cameraDirection = Axes::y;
+                            m_cameraDirection = forward;
                             break;
                         case SDLK_a:
-                            m_cameraDirection = -Axes::x;
+                            m_cameraDirection = left;
                             break;
                         case SDLK_s:
-                            m_cameraDirection = -Axes::y;
+                            m_cameraDirection = backward;
                             break;
                         case SDLK_d:
-                            m_cameraDirection = Axes::x;
+                            m_cameraDirection = right;
                             break;
                         case SDLK_UP:
-                            m_cameraRotationDirection = CameraRotationDirection::positiveX;
+                            /* m_cameraRotationDirection = CameraRotationDirection::positiveX;
                             break;
                         case SDLK_DOWN:
                             m_cameraRotationDirection = CameraRotationDirection::negativeX;
@@ -589,7 +620,7 @@ private:
                             break;
                         case SDLK_LEFT:
                             m_cameraRotationDirection = CameraRotationDirection::positiveZ;
-                            break;
+                            break; */
                         case SDLK_ESCAPE:
                             SDL_SetRelativeMouseMode(SDL_FALSE);
                             m_rotatingCamera = false;
@@ -602,12 +633,12 @@ private:
                     const auto keyCode = event.key.keysym.sym;
                     if (movementKeys.contains(keyCode))
                     {
-                        m_cameraDirection = glm::vec3{0.f};
+                        m_cameraDirection = MovingDirection::none;
                     }
-                    else if (rotationKeys.contains(keyCode))
+                    /* else if (rotationKeys.contains(keyCode))
                     {
                         m_cameraRotationDirection = CameraRotationDirection::none;
-                    }
+                    } */
                 }
 
                 if (event.type == SDL_MOUSEMOTION && m_rotatingCamera)
@@ -615,14 +646,10 @@ private:
                     const auto xDiff = event.motion.xrel;
                     const auto yDiff = event.motion.yrel;
 
-                    constexpr static float rotationSpeed = glm::radians(.1f);
-                    
-                    if (const auto newXAngle = m_xAngle - static_cast<float>(yDiff) * rotationSpeed; 
-                        newXAngle >= 0 && newXAngle <= std::numbers::pi_v<float>)
-                    {
-                        m_xAngle = newXAngle;
-                    }
-                    m_zAngle -= static_cast<float>(xDiff) * rotationSpeed;
+                    constexpr static float mouseSensitivity = glm::radians(.1f);
+                    const auto diffAngleX = static_cast<float>(yDiff) * mouseSensitivity;
+                    const auto diffAngleZ = static_cast<float>(xDiff) * mouseSensitivity;
+                    player.rotate(diffAngleX, diffAngleZ);
                 }
 
                 if (event.type == SDL_MOUSEBUTTONDOWN)
@@ -1783,7 +1810,7 @@ private:
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex
         , SwapChain& swapChain, VkRenderPass renderPass
-        , std::vector<Object>& objects //Geometry& geometry, std::vector<VkDescriptorSet>& descriptorSets
+        , std::vector<DisplayObject>& objects //Geometry& geometry, std::vector<VkDescriptorSet>& descriptorSets
 		, uint32_t currentFrame) {
 
         VkCommandBufferBeginInfo beginInfo{};
@@ -1875,24 +1902,24 @@ private:
         }
     }
 
-    glm::mat4 createZRotationMatrix() const
+   /*  glm::mat4 createZRotationMatrix() const
     {
-        return glm::rotate(glm::mat4{1.f}, m_zAngle, Axes::z);
+        return glm::rotate(glm::mat4{1.f}, zAngle, glm::vec3{Axes::z});
     }
 
     glm::mat4 createRotationMatrix() const
     {
         const auto zRotation = createZRotationMatrix();
-        return glm::rotate(zRotation, m_xAngle, Axes::x);
-    }
+        return glm::rotate(zRotation, xAngle, glm::vec3{Axes::x});
+    } */
 
-    glm::mat4 createViewMatrix() const
+ /*    glm::mat4 createViewMatrix() const
     {
         const auto rotationMatrix = createRotationMatrix();
         return glm::translate(glm::transpose(rotationMatrix), -m_eye);
-    }
+    } */
 
-    void rotate(float dt)
+    /* void rotate(float dt)
     {
         constexpr static float rotationSpeed = glm::radians(50.f);
         float rotationDiff = dt * rotationSpeed;
@@ -1912,25 +1939,23 @@ private:
                 m_zAngle -= rotationDiff;
                 break;
         }
-    }
+    } */
 
-    void updateUniformBuffer(uint32_t currentImage, SwapChain& swapChain, std::vector<Object>& objects ) { 
+    void updateUniformBuffer(uint32_t currentImage, SwapChain& swapChain, std::vector<DisplayObject>& objects ) { 
         static auto startTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 		startTime = currentTime;
 
-        const auto viewMatrix = createViewMatrix();
-        rotate(dt);
-
+        const auto viewMatrix = player.createViewMatrix();
+        //rotate(dt);
+        player.move(dt, m_cameraDirection, m_displayableEntities);
 		for( auto& object : objects ) {
 	        // object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-            constexpr static float cameraSpeed = .5f;
-            const auto zRotation = createZRotationMatrix();
-            m_eye += glm::vec3(cameraSpeed * dt * zRotation * glm::vec4{m_cameraDirection, 1.f});
+            constexpr static float cameraSpeed = .5f;            
 
 	        object.m_ubo.view = viewMatrix;
-			object.m_ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.1f, 10.0f);
+			object.m_ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.1f, 100.0f);
 	        object.m_ubo.proj[1][1] *= -1;
 
 	        memcpy(object.m_uniformBuffers.m_uniformBuffersMapped[currentImage], &object.m_ubo, sizeof(object.m_ubo));
@@ -1940,7 +1965,7 @@ private:
     void drawFrame(SDL_Window* window, VkSurfaceKHR surface, VkPhysicalDevice physicalDevice
         , VkDevice device, VmaAllocator vmaAllocator, VkQueue graphicsQueue, VkQueue presentQueue
         , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass
-		, std::vector<Object>& objects, std::vector<VkCommandBuffer>& commandBuffers 
+		, std::vector<DisplayObject>& objects, std::vector<VkCommandBuffer>& commandBuffers 
         , SyncObjects& syncObjects, uint32_t& currentFrame, bool& framebufferResized) {   
 
         vkWaitForFences(device, 1, &syncObjects.m_inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);

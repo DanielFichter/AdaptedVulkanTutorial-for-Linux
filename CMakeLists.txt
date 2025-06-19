@@ -47,6 +47,9 @@ set(SOURCE
   ${IMGUI}/imgui_tables.cpp
   ${IMGUI}/imgui_widgets.cpp
   28_model_loading.cpp
+  physicalentity.cpp
+  player.cpp
+  displayablephysicalentity.cpp
   )
 
 set(HEADERS )

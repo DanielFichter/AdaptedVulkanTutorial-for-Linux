@@ -91,7 +91,18 @@
 		"regex": "cpp",
 		"valarray": "cpp",
 		"unordered_set": "cpp",
-		"stack": "cpp"
+		"stack": "cpp",
+		"numbers": "cpp",
+		"csignal": "cpp",
+		"cwctype": "cpp",
+		"strstream": "cpp",
+		"cfenv": "cpp",
+		"complex": "cpp",
+		"memory_resource": "cpp",
+		"source_location": "cpp",
+		"string_view": "cpp",
+		"semaphore": "cpp",
+		"stdfloat": "cpp"
 	},
 	"sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json"
 }
