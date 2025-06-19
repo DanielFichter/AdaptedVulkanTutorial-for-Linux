@@ -84,7 +84,7 @@ namespace
     const std::vector<ObjectCreateInformation> objetsCreateInformation{
         {"models/cube.obj", "textures/wood.jpg", glm::translate(glm::scale(glm::mat4{1.f}, {0.5, .5 , .5}), {2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}},
         {"models/cube.obj", "textures/plank.png", glm::translate(glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {-2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}},
-        {"models/viking_room.obj", "textures/viking_room.png", glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {VK_CULL_MODE_NONE, "shaders/vert.spv", "shaders/frag.spv"}}
+        {"models/cube.obj", "textures/wood.jpg", glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {VK_CULL_MODE_NONE, "shaders/vert.spv", "shaders/frag.spv"}}
     };
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -458,7 +458,7 @@ private:
     SwapChain m_swapChain;
     DepthImage m_depthImage;
 
-    Player player{{1.f, 1.f, 4.f}, .2f, .2f, 1.8f, .5f};
+    Player player{{0.f, 0.f, 3.f}, .2f, .2f, 1.8f, .5f};
     std::vector<PhysicalEntity> blocks;
 
     VkRenderPass m_renderPass;

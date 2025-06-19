@@ -13,22 +13,25 @@ Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType le
 void Player::move(float dt, MovingDirection direction, std::vector<std::unique_ptr<PhysicalEntity>> const &collidingEntities)
 {
     translate(direction, dt);
-    if (std::any_of(collidingEntities.begin(), collidingEntities.end(), [this] (const std::unique_ptr<PhysicalEntity>& pEntity) {
-        return pEntity->collide(*this); }))
-    {
-        state = State::standing;
-        verticalSpeed = 0;
-        restoreFalling();
-        state = State::standing;
-    }
-    else if (state == State::walking)
-    {
-        state = State::falling;
-    }
-
-    if (state == State::falling)
+    if (state == State::falling || state == State::walking)
     {
         fall(dt);
+        if (detectCollision(collidingEntities))
+        {
+            if (verticalSpeed < 0)
+            {
+                while (detectCollision(collidingEntities))
+                {
+                    restoreFalling();
+                    state = State::standing;
+                    verticalSpeed = 0;
+                }
+            }
+        }
+        else if (state == State::walking)
+        {
+            state = State::falling;
+        }
     }
 }
 
@@ -56,6 +59,12 @@ glm::mat4 Player::createViewMatrix() const
 {
     const auto rotationMatrix = createRotationMatrix();
     return glm::translate(glm::transpose(rotationMatrix), -position);
+}
+
+bool Player::detectCollision(std::vector<std::unique_ptr<PhysicalEntity>> const & collidingEntities)
+{
+    return std::any_of(collidingEntities.begin(), collidingEntities.end(), [this] (const std::unique_ptr<PhysicalEntity>& pEntity) {
+        return pEntity->collide(*this); });
 }
 
 void Player::translate(MovingDirection direction, float dt)

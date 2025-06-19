@@ -18,6 +18,7 @@ public:
 
 private:
     enum class State {falling, standing, walking};
+    bool detectCollision(std::vector<std::unique_ptr<PhysicalEntity>> const &);
     State state = State::falling;
     void translate(MovingDirection direction, float dt);
     glm::mat4 createRotationMatrix() const;
