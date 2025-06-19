@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <numbers>
+#include <algorithm>
 
 Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType height, FloatingPointType length, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, height, length), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
 {
@@ -16,12 +17,15 @@ void Player::move(float dt, MovingDirection direction, std::vector<std::unique_p
     {
         fall(dt);
     }
-    for (auto const &entity : collidingEntities)
+    if (std::any_of(collidingEntities.begin(), collidingEntities.end(), [this] (const std::unique_ptr<PhysicalEntity>& pEntity) {
+        return pEntity->collide(*this); }))
     {
-        if (entity->collide(*this))
-        {
-            falling = false;
-        }
+        falling = false;
+        verticalSpeed = 0;
+    }
+    else if (!falling)
+    {
+        falling = true;
     }
 }
 
@@ -34,6 +38,15 @@ void Player::rotate(float diffAngleX, float diffAngleZ)
     }
 
     zAngle -= diffAngleZ * rotationSpeed;
+}
+
+void Player::jump()
+{
+    if (!falling)
+    {
+        verticalSpeed = 1;
+        falling = true;
+    }
 }
 
 glm::mat4 Player::createViewMatrix() const

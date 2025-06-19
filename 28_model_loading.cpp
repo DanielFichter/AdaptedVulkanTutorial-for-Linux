@@ -609,8 +609,11 @@ private:
                         case SDLK_d:
                             m_cameraDirection = right;
                             break;
-                        case SDLK_UP:
-                            /* m_cameraRotationDirection = CameraRotationDirection::positiveX;
+                        case SDLK_SPACE:
+                            player.jump();
+                            break;
+                        /* case SDLK_UP:
+                            m_cameraRotationDirection = CameraRotationDirection::positiveX;
                             break;
                         case SDLK_DOWN:
                             m_cameraRotationDirection = CameraRotationDirection::negativeX;

@@ -13,6 +13,7 @@ public:
     Player(glm::vec3 position, FloatingPointType width, FloatingPointType height, FloatingPointType length, FloatingPointType translationSpeed, FloatingPointType rotationSpeed = 1.);
     void move(float dt, MovingDirection direction, std::vector<std::unique_ptr<PhysicalEntity>> const &collidingEntities);
     void rotate(float diffAngleX, float diffAngleZ);
+    void jump();
     glm::mat4 createViewMatrix() const;
 
 private:

@@ -27,7 +27,7 @@ bool PhysicalEntity::collide(const PhysicalEntity &other)
 void PhysicalEntity::fall(float dt)
 {
     verticalSpeed += fallingAcceleration * dt;
-    const glm::vec4 downAxis = directionToAxis.at(MovingDirection::down);
+    const glm::vec4 downAxis = directionToAxis.at(MovingDirection::up);
     position += glm::vec3{downAxis} * verticalSpeed * dt;
 }
 

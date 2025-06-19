@@ -12,7 +12,7 @@ public:
 
 protected:
     FloatingPointType verticalSpeed = 0;
-    FloatingPointType fallingAcceleration = .1;
+    FloatingPointType fallingAcceleration = -.5;
     glm::vec3 position;
     FloatingPointType width;
     FloatingPointType height;
