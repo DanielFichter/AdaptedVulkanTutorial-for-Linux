@@ -458,7 +458,7 @@ private:
     SwapChain m_swapChain;
     DepthImage m_depthImage;
 
-    Player player{{1.f, 1.f, 1.f}, .5f, 2.f, .5f, .5f};
+    Player player{{1.f, 1.f, 4.f}, .2f, .2f, 1.8f, .5f};
     std::vector<PhysicalEntity> blocks;
 
     VkRenderPass m_renderPass;
@@ -531,7 +531,7 @@ private:
         createUniformBuffers(physicalDevice, device, vmaAllocator, object.m_uniformBuffers);
         createDescriptorSets(device, object.m_texture, descriptorSetLayout, object.m_uniformBuffers, descriptorPool, object.m_descriptorSets);
 		objects.push_back(object);
-        auto pDisplayEntity = std::make_unique<DisplayablePhysicalEntity>(1.f, 1.f, 1.f, object);
+        auto pDisplayEntity = std::make_unique<DisplayablePhysicalEntity>(.5f, .5f, .5f, object);
         m_displayableEntities.emplace_back(std::move(pDisplayEntity));
 	}
 

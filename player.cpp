@@ -6,26 +6,29 @@
 #include <numbers>
 #include <algorithm>
 
-Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType height, FloatingPointType length, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, height, length), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
+Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, length, height), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
 {
 }
 
 void Player::move(float dt, MovingDirection direction, std::vector<std::unique_ptr<PhysicalEntity>> const &collidingEntities)
 {
     translate(direction, dt);
-    if (falling)
-    {
-        fall(dt);
-    }
     if (std::any_of(collidingEntities.begin(), collidingEntities.end(), [this] (const std::unique_ptr<PhysicalEntity>& pEntity) {
         return pEntity->collide(*this); }))
     {
-        falling = false;
+        state = State::standing;
         verticalSpeed = 0;
+        restoreFalling();
+        state = State::standing;
     }
-    else if (!falling)
+    else if (state == State::walking)
     {
-        falling = true;
+        state = State::falling;
+    }
+
+    if (state == State::falling)
+    {
+        fall(dt);
     }
 }
 
@@ -42,10 +45,10 @@ void Player::rotate(float diffAngleX, float diffAngleZ)
 
 void Player::jump()
 {
-    if (!falling)
+    if (state != State::falling)
     {
         verticalSpeed = 1;
-        falling = true;
+        state = State::falling;
     }
 }
 
@@ -62,6 +65,10 @@ void Player::translate(MovingDirection direction, float dt)
         const auto directionVector = directionToAxis.at(direction);
         const auto zRotation = createZRotationMatrix();
         position += glm::vec3{zRotation * directionVector * translationSpeed * dt};
+        if (state == State::standing)
+        {
+            state = State::walking;
+        }
     }
 }
 
