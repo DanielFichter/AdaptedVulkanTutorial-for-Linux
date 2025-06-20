@@ -50,7 +50,7 @@ void Player::jump()
 {
     if (state != State::falling)
     {
-        verticalSpeed = 1;
+        verticalSpeed = 4;
         state = State::falling;
     }
 }

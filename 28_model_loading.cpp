@@ -77,15 +77,19 @@ namespace
     {
         std::string m_modelPath;
         std::string m_texturePath;
-        glm::mat4 m_modelMatrix;
+        // glm::mat4 m_modelMatrix;
+        glm::vec3 position;
+        glm::vec3 size;
         PipelineCreateInformation m_piplineInfo;
     };
 
     const std::vector<ObjectCreateInformation> objetsCreateInformation{
-        {"models/cube.obj", "textures/wood.jpg", glm::translate(glm::scale(glm::mat4{1.f}, {0.5, .5 , .5}), {2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}},
-        {"models/cube.obj", "textures/plank.png", glm::translate(glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {-2.f, 0.f, 0.f}), {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}},
-        {"models/cube.obj", "textures/wood.jpg", glm::scale(glm::mat4{1.f}, {.5, .5, .5}), {VK_CULL_MODE_NONE, "shaders/vert.spv", "shaders/frag.spv"}}
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{.25f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}}
     };
+    
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -458,7 +462,7 @@ private:
     SwapChain m_swapChain;
     DepthImage m_depthImage;
 
-    Player player{{0.f, 0.f, 3.f}, .2f, .2f, 1.8f, .5f};
+    Player player{{0.f, 0.f, 3.f}, .2f, .2f, 1.8f, 1.f};
     std::vector<PhysicalEntity> blocks;
 
     VkRenderPass m_renderPass;
@@ -520,7 +524,10 @@ private:
 	void createObject( VkPhysicalDevice physicalDevice, VkDevice device, VmaAllocator vmaAllocator, 
 			VkQueue graphicsQueue, VkCommandPool commandPool, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout,
 			const ObjectCreateInformation& createInfo, std::vector<DisplayObject>& objects) {
-		DisplayObject object{{createInfo.m_modelMatrix}};
+        
+
+        const auto modelMatrix = glm::scale(glm::translate(glm::mat4{1.f}, createInfo.position), createInfo.size);
+		DisplayObject object{modelMatrix};
         createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, createInfo.m_piplineInfo, object.m_pipeline);
 		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, createInfo.m_texturePath, object.m_texture);
         createTextureImageView(device, object.m_texture);
@@ -531,9 +538,16 @@ private:
         createUniformBuffers(physicalDevice, device, vmaAllocator, object.m_uniformBuffers);
         createDescriptorSets(device, object.m_texture, descriptorSetLayout, object.m_uniformBuffers, descriptorPool, object.m_descriptorSets);
 		objects.push_back(object);
-        auto pDisplayEntity = std::make_unique<DisplayablePhysicalEntity>(.5f, .5f, .5f, object);
+
+        auto pDisplayEntity = createDisplayablePhysicalEntity(createInfo, object);
         m_displayableEntities.emplace_back(std::move(pDisplayEntity));
 	}
+
+    std::unique_ptr<DisplayablePhysicalEntity> createDisplayablePhysicalEntity(const ObjectCreateInformation& createInfo, DisplayObject& object)
+    {
+        const auto& size = createInfo.size;
+        return std::make_unique<DisplayablePhysicalEntity>(size.x, size.y, size.z, object);
+    }
 
     void initVulkan() {
         createInstance(&m_instance, m_validationLayers);
@@ -1958,7 +1972,7 @@ private:
             constexpr static float cameraSpeed = .5f;            
 
 	        object.m_ubo.view = viewMatrix;
-			object.m_ubo.proj = glm::perspective(glm::radians(45.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.1f, 100.0f);
+			object.m_ubo.proj = glm::perspective(glm::radians(80.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.1f, 100.0f);
 	        object.m_ubo.proj[1][1] *= -1;
 
 	        memcpy(object.m_uniformBuffers.m_uniformBuffersMapped[currentImage], &object.m_ubo, sizeof(object.m_ubo));
