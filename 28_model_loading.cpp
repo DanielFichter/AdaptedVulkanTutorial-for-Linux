@@ -99,7 +99,7 @@ namespace
         std::optional<MovingBlockCreateInformation> mbCreateInfo;
     };
 
-    const MovingBlockCreateInformation standardMBCreateInfo{2.f, .5f, 4.f, MovingDirection::forward};
+    const MovingBlockCreateInformation standardMBCreateInfo{.5f, .5f, 4.f, MovingDirection::forward};
 
     const std::vector<ObjectCreateInformation> objectsCreateInformation{
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}, EntityType::regularBlock, {}},
@@ -107,7 +107,7 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
         {"models/cube.obj", "textures/plank.png", glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.f, 5.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
     };
     
 
@@ -517,7 +517,7 @@ DisplayablePhysicalEntity::DisplayablePhysicalEntity(FloatingPointType width, Fl
 void DisplayablePhysicalEntity::translate(const glm::vec3 & offset)
 {
     position += offset;
-    object.m_ubo.model *= glm::translate(glm::mat4{1.f}, offset);
+    object.m_ubo.model = glm::scale(glm::translate(glm::mat4{1.f}, position), {width, length, height});
 }
 
 }
