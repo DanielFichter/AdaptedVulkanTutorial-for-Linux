@@ -10,6 +10,7 @@ public:
     bool collide(const PhysicalEntity &other);
     void fall(float dt);
     void restoreFalling();
+    virtual void advance(float dt) {}
 
 protected:
     FloatingPointType verticalSpeed = 0;

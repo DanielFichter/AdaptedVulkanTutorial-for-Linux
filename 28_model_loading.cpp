@@ -73,6 +73,20 @@ namespace
         std::string fragmentShaderPath;
     };
 
+    struct MovingBlockCreateInformation
+    {
+        FloatingPointType speed;
+        float waitingDuration;
+        float movingDuration;
+        MovingDirection movingDirection;
+    };
+
+    enum class EntityType
+    {
+        regularBlock,
+        movingBlock
+    };
+
     struct ObjectCreateInformation
     {
         std::string m_modelPath;
@@ -81,13 +95,19 @@ namespace
         glm::vec3 position;
         glm::vec3 size;
         PipelineCreateInformation m_piplineInfo;
+        EntityType type;
+        std::optional<MovingBlockCreateInformation> mbCreateInfo;
     };
 
-    const std::vector<ObjectCreateInformation> objetsCreateInformation{
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{.25f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}}
+    const MovingBlockCreateInformation standardMBCreateInfo{2.f, .5f, 4.f, MovingDirection::forward};
+
+    const std::vector<ObjectCreateInformation> objectsCreateInformation{
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}, EntityType::regularBlock, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{.25f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}, EntityType::regularBlock, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
+        {"models/cube.obj", "textures/plank.png", glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.f, 5.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
     };
     
 
@@ -415,19 +435,89 @@ class DisplayablePhysicalEntity: public PhysicalEntity
 public:
     DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object);
 
-private:
+protected:
     void translate(const glm::vec3&);
-    DisplayObject& object;
+
+private:
+    DisplayObject& object;   
+};
+
+class MovingBlock: public DisplayablePhysicalEntity
+{
+    enum class State {movingForward, movingBackward, waitingFront, waitingBack};
+public:
+    MovingBlock(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object, FloatingPointType speed, float translationDuration, float waitingDuration, MovingDirection movingDirection): DisplayablePhysicalEntity(width, length, height, object), speed{speed}, translationDuration{translationDuration}, waitingDuration{waitingDuration}, movingDirection{movingDirection} {}
+
+    void advance(float dt) override
+    {
+        passedTime += dt;
+        using enum State;
+        switch(state)
+        {
+            case movingForward:
+                move(directionToAxis.at(movingDirection), dt);
+                break;
+            case movingBackward:
+                move(-directionToAxis.at(movingDirection), dt);
+                break;
+            default:
+                wait(dt);
+        }
+    }
+
+    void wait(float dt)
+    {
+        if (passedTime >= waitingDuration)
+        {
+            if (state == State::waitingBack)
+            {
+                state = State::movingForward;
+            }
+            else
+            {
+                state = State::movingBackward;
+            }
+            passedTime = 0;
+        }
+    }
+
+    
+
+private:
+    void move(const glm::vec3 direction, float dt)
+    {
+        const auto offset = direction * dt * speed;
+        DisplayablePhysicalEntity::translate(offset);
+        if (passedTime >= translationDuration)
+        {
+            passedTime = 0;
+            if (state == State::movingBackward)
+            {
+                state = State::waitingBack;
+            }
+            else
+            {
+                state = State::waitingFront;
+            }
+        }
+    }
+
+    MovingDirection movingDirection = MovingDirection::forward;
+    FloatingPointType speed = 0;
+    float translationDuration = 0;
+    float waitingDuration = 0;
+    float passedTime = 0;
+    State state = State::movingForward;
 };
 
 DisplayablePhysicalEntity::DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object) : PhysicalEntity(object.m_ubo.model * glm::vec4{0.f, 0.f, 0.f, 1.f}, width, height, length), object{object}
 {
 }
 
-void DisplayablePhysicalEntity::translate(const glm::vec3 & translation)
+void DisplayablePhysicalEntity::translate(const glm::vec3 & offset)
 {
-    position += translation;
-    object.m_ubo.model = glm::translate(object.m_ubo.model, translation);
+    position += offset;
+    object.m_ubo.model *= glm::translate(glm::mat4{1.f}, offset);
 }
 
 }
@@ -539,14 +629,24 @@ private:
         createDescriptorSets(device, object.m_texture, descriptorSetLayout, object.m_uniformBuffers, descriptorPool, object.m_descriptorSets);
 		objects.push_back(object);
 
-        auto pDisplayEntity = createDisplayablePhysicalEntity(createInfo, object);
+        auto pDisplayEntity = createDisplayablePhysicalEntity(createInfo, objects.back());
         m_displayableEntities.emplace_back(std::move(pDisplayEntity));
 	}
 
     std::unique_ptr<DisplayablePhysicalEntity> createDisplayablePhysicalEntity(const ObjectCreateInformation& createInfo, DisplayObject& object)
     {
         const auto& size = createInfo.size;
-        return std::make_unique<DisplayablePhysicalEntity>(size.x, size.y, size.z, object);
+        using enum EntityType;
+        switch(createInfo.type)
+        {
+            case regularBlock:
+                return std::make_unique<DisplayablePhysicalEntity>(size.x, size.y, size.z, object);
+            case movingBlock:
+                const auto& mbCreateInfo = createInfo.mbCreateInfo.value();
+                auto result = std::make_unique<MovingBlock>(size.x, size.y, size.z, object, mbCreateInfo.speed, mbCreateInfo.movingDuration, mbCreateInfo.waitingDuration, mbCreateInfo.movingDirection);
+                return std::move(result);
+        }
+        
     }
 
     void initVulkan() {
@@ -566,7 +666,7 @@ private:
         createFramebuffers(m_device, m_swapChain, m_depthImage, m_renderPass);
         createDescriptorPool(m_device, m_descriptorPool);
 
-        for (const auto& objectCreateInfo: ::objetsCreateInformation)
+        for (const auto& objectCreateInfo: ::objectsCreateInformation)
         {
             createObject(m_physicalDevice, m_device, m_vmaAllocator, m_graphicsQueue, m_commandPool, 
 			    m_descriptorPool, m_descriptorSetLayout, objectCreateInfo, m_objects);
@@ -1963,12 +2063,13 @@ private:
         auto currentTime = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 		startTime = currentTime;
+        std::for_each(m_displayableEntities.begin(), m_displayableEntities.end(), [dt] (std::unique_ptr<PhysicalEntity>& pEntity) { pEntity->advance(dt); });
 
         const auto viewMatrix = player.createViewMatrix();
         //rotate(dt);
         player.move(dt, m_cameraDirection, m_displayableEntities);
 		for( auto& object : objects ) {
-	        // object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	        //object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
             constexpr static float cameraSpeed = .5f;            
 
 	        object.m_ubo.view = viewMatrix;
