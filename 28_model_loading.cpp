@@ -60,6 +60,7 @@
 #include <set>
 #include <unordered_map>
 #include <format>
+#include <numbers>
 
 using namespace std::string_literals;
 
@@ -109,6 +110,9 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
         {"models/cube.obj", "textures/plank.png", glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}}
     };
     
 
@@ -434,7 +438,11 @@ struct DisplayObject
 class DisplayablePhysicalEntity: public PhysicalEntity
 {
 public:
-    DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject& object);
+    DisplayablePhysicalEntity(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object);
+    DisplayObject& getDisplayObject()
+    {
+        return object;
+    }
 
 protected:
     void translate(const glm::vec3&);
@@ -447,12 +455,14 @@ protected:
     {
         object.m_ubo.model = glm::scale(glm::translate(glm::mat4{1.f}, position), {width, length, height});
     }
+    
 private:
-    DisplayObject& object;   
+    DisplayObject object;   
 };
 
-DisplayablePhysicalEntity::DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object) : PhysicalEntity(object.m_ubo.model * glm::vec4{0.f, 0.f, 0.f, 1.f}, width, height, length), object{object}
+DisplayablePhysicalEntity::DisplayablePhysicalEntity(const glm::vec3& position,FloatingPointType width, FloatingPointType height, FloatingPointType length, const DisplayObject& object) : PhysicalEntity(position, width, height, length), object{object}
 {
+    updateModelMatrix();
 }
 
 void DisplayablePhysicalEntity::translate(const glm::vec3 & offset)
@@ -465,7 +475,7 @@ class MovingBlock: public DisplayablePhysicalEntity
 {
     enum class State {movingForward, movingBackward, waitingFront, waitingBack};
 public:
-    MovingBlock(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object, FloatingPointType speed, float translationDuration, float waitingDuration, MovingDirection movingDirection): DisplayablePhysicalEntity(width, length, height, object), speed{speed}, translationDuration{translationDuration}, waitingDuration{waitingDuration}, movingDirection{movingDirection} {}
+    MovingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType height, FloatingPointType length, const DisplayObject& object, FloatingPointType speed, float translationDuration, float waitingDuration, MovingDirection movingDirection): DisplayablePhysicalEntity(position, width, length, height, object), speed{speed}, translationDuration{translationDuration}, waitingDuration{waitingDuration}, movingDirection{movingDirection} {}
 
     void advance(float dt) override
     {
@@ -500,8 +510,6 @@ public:
         }
     }
 
-    
-
 private:
     void move(const glm::vec3 direction, float dt)
     {
@@ -533,7 +541,7 @@ private:
 class FallingBlock: public DisplayablePhysicalEntity
 {
 public:
-    FallingBlock(FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject& object): DisplayablePhysicalEntity(width, length, height, object) {}
+    FallingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject& object): DisplayablePhysicalEntity(position, width, length, height, object) {}
     bool collide(const PhysicalEntity& other) override
     {
         const bool result = PhysicalEntity::collide(other);
@@ -575,6 +583,113 @@ private:
 
 }
 
+class Player : public PhysicalEntity
+{
+public:
+    Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed = 1.);
+    void move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const &collidingEntities);
+    void rotate(float diffAngleX, float diffAngleZ);
+    void jump();
+    glm::mat4 createViewMatrix() const;
+
+private:
+    enum class State {falling, standing, walking};
+    bool detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const &);
+    State state = State::falling;
+    void translate(MovingDirection direction, float dt);
+    glm::mat4 createRotationMatrix() const;
+    glm::mat4 createZRotationMatrix() const;
+    float xAngle = glm::atan(glm::sqrt(8.f) / 2.f);
+    float zAngle = glm::radians(180.f - 45.f);
+    float translationSpeed;
+    float rotationSpeed;
+    glm::mat4 view;
+};
+
+Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, length, height), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
+{
+}
+
+void Player::move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const &collidingEntities)
+{
+    translate(direction, dt);
+    
+    fall(dt);
+    if (detectCollision(collidingEntities))
+    {
+        if (verticalSpeed < 0)
+        {
+            while (detectCollision(collidingEntities))
+            {
+                restoreFalling();
+            }
+            state = State::standing;
+            verticalSpeed = 0;
+        }
+    }
+    else
+    {
+        state = State::falling;
+    }
+}
+
+void Player::rotate(float diffAngleX, float diffAngleZ)
+{
+    if (const auto newXAngle = xAngle - diffAngleX * rotationSpeed;
+        newXAngle >= 0 && newXAngle <= std::numbers::pi_v<float>)
+    {
+        xAngle = newXAngle;
+    }
+
+    zAngle -= diffAngleZ * rotationSpeed;
+}
+
+void Player::jump()
+{
+    if (state != State::falling)
+    {
+        verticalSpeed = 4;
+        state = State::falling;
+    }
+}
+
+glm::mat4 Player::createViewMatrix() const
+{
+    const auto rotationMatrix = createRotationMatrix();
+    return glm::translate(glm::transpose(rotationMatrix), -position);
+}
+
+bool Player::detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const & collidingEntities)
+{
+    return std::any_of(collidingEntities.begin(), collidingEntities.end(), [this] (const std::unique_ptr<DisplayablePhysicalEntity>& pEntity) {
+        return pEntity->collide(*this); });
+}
+
+void Player::translate(MovingDirection direction, float dt)
+{
+    if (direction != MovingDirection::none)
+    {
+        const auto directionVector = directionToAxis.at(direction);
+        const auto zRotation = createZRotationMatrix();
+        position += glm::vec3{zRotation * directionVector * translationSpeed * dt};
+        if (state == State::standing)
+        {
+            state = State::walking;
+        }
+    }
+}
+
+glm::mat4 Player::createRotationMatrix() const
+{
+    const auto zRotation = createZRotationMatrix();
+    return glm::rotate(zRotation, xAngle, glm::vec3{Axes::x});
+}
+
+glm::mat4 Player::createZRotationMatrix() const
+{
+    return glm::rotate(glm::mat4{1.f}, zAngle, glm::vec3{Axes::z});
+}
+
 class HelloTriangleApplication {
 public:
     void run() {
@@ -611,8 +726,7 @@ private:
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
 
-	std::vector<DisplayObject> m_objects;
-    std::vector<std::unique_ptr<PhysicalEntity>> m_displayableEntities;
+    std::vector<std::unique_ptr<DisplayablePhysicalEntity>> m_displayableEntities;
 
     bool m_rotatingCamera = false;
 
@@ -666,11 +780,9 @@ private:
 
 	void createObject( VkPhysicalDevice physicalDevice, VkDevice device, VmaAllocator vmaAllocator, 
 			VkQueue graphicsQueue, VkCommandPool commandPool, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout,
-			const ObjectCreateInformation& createInfo, std::vector<DisplayObject>& objects) {
+			const ObjectCreateInformation& createInfo) {
         
-
-        const auto modelMatrix = glm::scale(glm::translate(glm::mat4{1.f}, createInfo.position), createInfo.size);
-		DisplayObject object{modelMatrix};
+		DisplayObject object;
         createGraphicsPipeline(m_device, m_renderPass, m_descriptorSetLayout, createInfo.m_piplineInfo, object.m_pipeline);
 		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, createInfo.m_texturePath, object.m_texture);
         createTextureImageView(device, object.m_texture);
@@ -680,9 +792,8 @@ private:
         createIndexBuffer( physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, object.m_geometry);
         createUniformBuffers(physicalDevice, device, vmaAllocator, object.m_uniformBuffers);
         createDescriptorSets(device, object.m_texture, descriptorSetLayout, object.m_uniformBuffers, descriptorPool, object.m_descriptorSets);
-		objects.push_back(object);
 
-        auto pDisplayEntity = createDisplayablePhysicalEntity(createInfo, objects.back());
+        auto pDisplayEntity = createDisplayablePhysicalEntity(createInfo, object);
         m_displayableEntities.emplace_back(std::move(pDisplayEntity));
 	}
 
@@ -693,15 +804,15 @@ private:
         switch(createInfo.type)
         {
             case regularBlock:
-                return std::make_unique<DisplayablePhysicalEntity>(size.x, size.y, size.z, object);
+                return std::make_unique<DisplayablePhysicalEntity>(createInfo.position, size.x, size.y, size.z, object);
             case movingBlock:
                 {
                     const auto& mbCreateInfo = createInfo.mbCreateInfo.value();
-                    auto result = std::make_unique<MovingBlock>(size.x, size.y, size.z, object, mbCreateInfo.speed, mbCreateInfo.movingDuration, mbCreateInfo.waitingDuration, mbCreateInfo.movingDirection);
+                    auto result = std::make_unique<MovingBlock>(createInfo.position, size.x, size.y, size.z, object, mbCreateInfo.speed, mbCreateInfo.movingDuration, mbCreateInfo.waitingDuration, mbCreateInfo.movingDirection);
                     return std::move(result);
                 }
             case fallingBlock:
-                return std::make_unique<FallingBlock>(size.x, size.y, size.z, object);
+                return std::make_unique<FallingBlock>(createInfo.position, size.x, size.y, size.z, object);
         }
         
     }
@@ -726,7 +837,7 @@ private:
         for (const auto& objectCreateInfo: ::objectsCreateInformation)
         {
             createObject(m_physicalDevice, m_device, m_vmaAllocator, m_graphicsQueue, m_commandPool, 
-			    m_descriptorPool, m_descriptorSetLayout, objectCreateInfo, m_objects);
+			    m_descriptorPool, m_descriptorSetLayout, objectCreateInfo);
         }
 	
 		createCommandBuffers(m_device, m_commandPool, m_commandBuffers);
@@ -845,7 +956,7 @@ private:
 
                 drawFrame(m_sdlWindow, m_surface, m_physicalDevice, m_device, m_vmaAllocator
                     , m_graphicsQueue, m_presentQueue, m_swapChain, m_depthImage
-                    , m_renderPass, m_objects, m_commandBuffers
+                    , m_renderPass, m_commandBuffers
 					, m_syncObjects, m_currentFrame, m_framebufferResized);
             }
         }
@@ -877,8 +988,9 @@ private:
 
         cleanupSwapChain(m_device, m_vmaAllocator, m_swapChain, m_depthImage);
 
-        for (const auto& object: m_objects)
+        for (const auto& displayablePhysicalEntity: m_displayableEntities)
         {
+            auto& object = displayablePhysicalEntity->getDisplayObject();
             vkDestroyPipeline(m_device, object.m_pipeline.m_pipeline, nullptr);
             vkDestroyPipelineLayout(m_device, object.m_pipeline.m_pipelineLayout, nullptr);
         }
@@ -886,7 +998,8 @@ private:
         vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 
 
-		for( auto& object : m_objects) {
+		for( auto& displayablePhysicalEntity : m_displayableEntities) {
+            auto& object = displayablePhysicalEntity->getDisplayObject();
 	        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 	            destroyBuffer(m_device, m_vmaAllocator, object.m_uniformBuffers.m_uniformBuffers[i], object.m_uniformBuffers.m_uniformBuffersAllocation[i]);
 	        }
@@ -1984,7 +2097,6 @@ private:
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex
         , SwapChain& swapChain, VkRenderPass renderPass
-        , std::vector<DisplayObject>& objects //Geometry& geometry, std::vector<VkDescriptorSet>& descriptorSets
 		, uint32_t currentFrame) {
 
         VkCommandBufferBeginInfo beginInfo{};
@@ -2026,8 +2138,8 @@ private:
         scissor.extent = swapChain.m_swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        for( auto& object : objects ) {
-
+        for( auto& displayablePhysicalEntity : m_displayableEntities ) {
+            auto& object = displayablePhysicalEntity->getDisplayObject();
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipeline);
             VkBuffer vertexBuffers[] = {object.m_geometry.m_vertexBuffer};
             VkDeviceSize offsets[] = {0};
@@ -2115,18 +2227,20 @@ private:
         }
     } */
 
-    void updateUniformBuffer(uint32_t currentImage, SwapChain& swapChain, std::vector<DisplayObject>& objects ) { 
+    void updateUniformBuffer(uint32_t currentImage, SwapChain& swapChain) { 
         static auto startTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 		startTime = currentTime;
-        std::for_each(m_displayableEntities.begin(), m_displayableEntities.end(), [dt] (std::unique_ptr<PhysicalEntity>& pEntity) { pEntity->advance(dt); });
+        std::for_each(m_displayableEntities.begin(), m_displayableEntities.end(), [dt] (std::unique_ptr<DisplayablePhysicalEntity>& pEntity) { pEntity->advance(dt); });
 
         const auto viewMatrix = player.createViewMatrix();
         //rotate(dt);
         player.move(dt, m_cameraDirection, m_displayableEntities);
-		for( auto& object : objects ) {
+
+		for( auto& displayablePhysicalEntity : m_displayableEntities ) {
 	        //object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+            auto& object = displayablePhysicalEntity->getDisplayObject();
             constexpr static float cameraSpeed = .5f;            
 
 	        object.m_ubo.view = viewMatrix;
@@ -2139,9 +2253,9 @@ private:
 
     void drawFrame(SDL_Window* window, VkSurfaceKHR surface, VkPhysicalDevice physicalDevice
         , VkDevice device, VmaAllocator vmaAllocator, VkQueue graphicsQueue, VkQueue presentQueue
-        , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass
-		, std::vector<DisplayObject>& objects, std::vector<VkCommandBuffer>& commandBuffers 
-        , SyncObjects& syncObjects, uint32_t& currentFrame, bool& framebufferResized) {   
+        , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass, 
+        std::vector<VkCommandBuffer>& commandBuffers, SyncObjects& syncObjects,
+        uint32_t& currentFrame, bool& framebufferResized) {   
 
         vkWaitForFences(device, 1, &syncObjects.m_inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -2157,12 +2271,12 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        updateUniformBuffer(currentFrame, swapChain, objects); 
+        updateUniformBuffer(currentFrame, swapChain); 
 
         vkResetFences(device, 1, &syncObjects.m_inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame],  0);
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, swapChain, renderPass, objects, currentFrame);
+        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, swapChain, renderPass, currentFrame);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
