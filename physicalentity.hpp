@@ -11,6 +11,8 @@ public:
     virtual void fall(float dt);
     void restoreFalling();
     virtual void advance(float dt) {}
+    const glm::vec3& getPosition() const { return position; }
+    const glm::vec3 getSize() const { return {width, length, height}; }
 
 protected:
     FloatingPointType verticalSpeed = 0;
