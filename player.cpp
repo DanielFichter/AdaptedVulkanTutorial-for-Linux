@@ -13,25 +13,23 @@ Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType le
 void Player::move(float dt, MovingDirection direction, std::vector<std::unique_ptr<PhysicalEntity>> const &collidingEntities)
 {
     translate(direction, dt);
-    if (state == State::falling || state == State::walking)
+    
+    fall(dt);
+    if (detectCollision(collidingEntities))
     {
-        fall(dt);
-        if (detectCollision(collidingEntities))
+        if (verticalSpeed < 0)
         {
-            if (verticalSpeed < 0)
+            while (detectCollision(collidingEntities))
             {
-                while (detectCollision(collidingEntities))
-                {
-                    restoreFalling();
-                    state = State::standing;
-                    verticalSpeed = 0;
-                }
+                restoreFalling();
             }
+            state = State::standing;
+            verticalSpeed = 0;
         }
-        else if (state == State::walking)
-        {
-            state = State::falling;
-        }
+    }
+    else
+    {
+        state = State::falling;
     }
 }
 
