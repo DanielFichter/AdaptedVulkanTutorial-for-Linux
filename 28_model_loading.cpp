@@ -84,7 +84,8 @@ namespace
     enum class EntityType
     {
         regularBlock,
-        movingBlock
+        movingBlock,
+        fallingBlock
     };
 
     struct ObjectCreateInformation
@@ -107,7 +108,7 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
         {"models/cube.obj", "textures/plank.png", glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}},
     };
     
 
@@ -433,14 +434,32 @@ struct DisplayObject
 class DisplayablePhysicalEntity: public PhysicalEntity
 {
 public:
-    DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object);
+    DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject& object);
 
 protected:
     void translate(const glm::vec3&);
-
+    void fall(float dt) override
+    {
+        PhysicalEntity::fall(dt);
+        updateModelMatrix();
+    }
+    void updateModelMatrix()
+    {
+        object.m_ubo.model = glm::scale(glm::translate(glm::mat4{1.f}, position), {width, length, height});
+    }
 private:
     DisplayObject& object;   
 };
+
+DisplayablePhysicalEntity::DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object) : PhysicalEntity(object.m_ubo.model * glm::vec4{0.f, 0.f, 0.f, 1.f}, width, height, length), object{object}
+{
+}
+
+void DisplayablePhysicalEntity::translate(const glm::vec3 & offset)
+{
+    position += offset;
+    updateModelMatrix();
+}
 
 class MovingBlock: public DisplayablePhysicalEntity
 {
@@ -510,15 +529,49 @@ private:
     State state = State::movingForward;
 };
 
-DisplayablePhysicalEntity::DisplayablePhysicalEntity(FloatingPointType width, FloatingPointType height, FloatingPointType length, DisplayObject& object) : PhysicalEntity(object.m_ubo.model * glm::vec4{0.f, 0.f, 0.f, 1.f}, width, height, length), object{object}
-{
-}
 
-void DisplayablePhysicalEntity::translate(const glm::vec3 & offset)
+class FallingBlock: public DisplayablePhysicalEntity
 {
-    position += offset;
-    object.m_ubo.model = glm::scale(glm::translate(glm::mat4{1.f}, position), {width, length, height});
-}
+public:
+    FallingBlock(FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject& object): DisplayablePhysicalEntity(width, length, height, object) {}
+    bool collide(const PhysicalEntity& other) override
+    {
+        const bool result = PhysicalEntity::collide(other);
+        if (result && state == State::notCollided)
+        {
+            state = State::collided;
+        }
+
+        return result;
+    }
+
+    void advance(float dt) override
+    {
+        if (state == State::collided)
+        {
+            passedTime += dt;
+            if (passedTime >= timeOffset)
+            {
+                state = State::falling;
+            }
+        }
+        if (state == State::falling)
+        {
+            fall(dt);
+        }
+    }
+
+private:
+    enum class State 
+    {
+        notCollided,
+        collided,
+        falling
+    };
+    State state = State::notCollided;
+    float passedTime = 0;
+    float timeOffset = 1.f;
+};
 
 }
 
@@ -642,9 +695,13 @@ private:
             case regularBlock:
                 return std::make_unique<DisplayablePhysicalEntity>(size.x, size.y, size.z, object);
             case movingBlock:
-                const auto& mbCreateInfo = createInfo.mbCreateInfo.value();
-                auto result = std::make_unique<MovingBlock>(size.x, size.y, size.z, object, mbCreateInfo.speed, mbCreateInfo.movingDuration, mbCreateInfo.waitingDuration, mbCreateInfo.movingDirection);
-                return std::move(result);
+                {
+                    const auto& mbCreateInfo = createInfo.mbCreateInfo.value();
+                    auto result = std::make_unique<MovingBlock>(size.x, size.y, size.z, object, mbCreateInfo.speed, mbCreateInfo.movingDuration, mbCreateInfo.waitingDuration, mbCreateInfo.movingDirection);
+                    return std::move(result);
+                }
+            case fallingBlock:
+                return std::make_unique<FallingBlock>(size.x, size.y, size.z, object);
         }
         
     }

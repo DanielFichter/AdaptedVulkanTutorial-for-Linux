@@ -7,8 +7,8 @@ class PhysicalEntity
 {
 public:
     PhysicalEntity(const glm::vec3 &position, FloatingPointType width, FloatingPointType length, FloatingPointType height);
-    bool collide(const PhysicalEntity &other);
-    void fall(float dt);
+    virtual bool collide(const PhysicalEntity &other);
+    virtual void fall(float dt);
     void restoreFalling();
     virtual void advance(float dt) {}
 

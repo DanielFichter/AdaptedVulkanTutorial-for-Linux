@@ -103,6 +103,5 @@
 		"string_view": "cpp",
 		"semaphore": "cpp",
 		"stdfloat": "cpp"
-	},
-	"sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json"
+	}
 }
