@@ -82,11 +82,17 @@ namespace
         MovingDirection movingDirection;
     };
 
+    struct RotatingBladeCreateInformation
+    {
+        glm::vec3 rotationAxis;
+    };
+
     enum class EntityType
     {
         regularBlock,
         movingBlock,
-        fallingBlock
+        fallingBlock,
+        rotatingBlade
     };
 
     struct ObjectCreateInformation
@@ -99,23 +105,24 @@ namespace
         PipelineCreateInformation m_piplineInfo;
         EntityType type;
         std::optional<MovingBlockCreateInformation> mbCreateInfo;
+        std::optional<RotatingBladeCreateInformation> rbCreateInfo;
     };
 
     const MovingBlockCreateInformation standardMBCreateInfo{.5f, .5f, 4.f, MovingDirection::forward};
 
     const std::vector<ObjectCreateInformation> objectsCreateInformation{
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}, EntityType::regularBlock, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{.25f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}, EntityType::regularBlock, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}},
-        {"models/cube.obj", "textures/plank.png", glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}}
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}, EntityType::regularBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{.25f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}, EntityType::regularBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
+        {"models/cube.obj", "textures/plank.png", glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{/* 6.f, 3.f, 4.f */ 1.f, 0.f, 1.f}, glm::vec3{.25f, .25f, 2.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}}
     };
     
-
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
     const std::vector<const char*> m_validationLayers = {
@@ -438,14 +445,21 @@ struct DisplayObject
 class DisplayablePhysicalEntity: public PhysicalEntity
 {
 public:
-    DisplayablePhysicalEntity(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object);
+    DisplayablePhysicalEntity(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, const glm::vec3& rotationAxis = Axes::x);
     DisplayObject& getDisplayObject()
     {
         return object;
     }
-
+    
 protected:
+    void rotate(const float angleDiff)
+    {
+        angle += angleDiff;
+        updateModelMatrix();
+    }
+    
     void translate(const glm::vec3&);
+    
     void fall(float dt) override
     {
         PhysicalEntity::fall(dt);
@@ -453,14 +467,16 @@ protected:
     }
     void updateModelMatrix()
     {
-        object.m_ubo.model = glm::scale(glm::translate(glm::mat4{1.f}, position), {width, length, height});
+        object.m_ubo.model = glm::scale(glm::rotate(glm::translate(glm::mat4{1.f}, position), angle, rotationAxis), {width, length, height});
     }
     
 private:
-    DisplayObject object;   
+    DisplayObject object;
+    float angle = 0.f;
+    glm::vec3 rotationAxis;
 };
 
-DisplayablePhysicalEntity::DisplayablePhysicalEntity(const glm::vec3& position,FloatingPointType width, FloatingPointType height, FloatingPointType length, const DisplayObject& object) : PhysicalEntity(position, width, height, length), object{object}
+DisplayablePhysicalEntity::DisplayablePhysicalEntity(const glm::vec3& position,FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, const glm::vec3& rotationAxis) : PhysicalEntity(position, width, length, height), object{object}, rotationAxis{rotationAxis}
 {
     updateModelMatrix();
 }
@@ -537,6 +553,19 @@ private:
     State state = State::movingForward;
 };
 
+class RotatingBlade: public DisplayablePhysicalEntity
+{
+public:
+    RotatingBlade(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, glm::vec3 rotationAxis): DisplayablePhysicalEntity(position, width, length, height, object, rotationAxis) {}
+
+private:
+    void advance(float dt) override
+    {
+        rotate(dt * rotationSpeed);
+    }
+
+    float rotationSpeed = 1.f;
+};
 
 class FallingBlock: public DisplayablePhysicalEntity
 {
@@ -813,6 +842,11 @@ private:
                 }
             case fallingBlock:
                 return std::make_unique<FallingBlock>(createInfo.position, size.x, size.y, size.z, object);
+            case rotatingBlade:
+                {
+                    const auto& rbCreateInfo = createInfo.rbCreateInfo.value();
+                    return std::make_unique<RotatingBlade>(createInfo.position, size.x, size.y, size.z, object, rbCreateInfo.rotationAxis);
+                }
         }
         
     }
