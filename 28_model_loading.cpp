@@ -676,6 +676,8 @@ public:
     void move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &collidingEntities);
     void rotate(float diffAngleX, float diffAngleZ);
     void jump();
+    void stop();
+    void activate();
     glm::mat4 createViewMatrix() const;
 
 private:
@@ -691,6 +693,7 @@ private:
     float translationSpeed;
     float rotationSpeed;
     glm::mat4 view;
+    bool active = true;
 };
 
 Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, length, height), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
@@ -699,6 +702,10 @@ Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType le
 
 void Player::move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &collidingEntities)
 {
+    if (!active)
+    {
+        return;
+    }
     translate(direction, dt);
     
     fall(dt);
@@ -734,11 +741,27 @@ void Player::rotate(float diffAngleX, float diffAngleZ)
 
 void Player::jump()
 {
-    if (state != State::falling)
+    if (active)
     {
-        verticalSpeed = 4;
-        state = State::falling;
+        if (state != State::falling)
+        {
+            verticalSpeed = 4;
+            state = State::falling;
+        }
     }
+}
+
+void Player::stop()
+{
+    verticalSpeed = 0;
+    state = State::standing;
+    active = false;
+}
+
+void Player::activate()
+{
+    active = true;
+    state = State::falling;
 }
 
 glm::mat4 Player::createViewMatrix() const
@@ -794,15 +817,21 @@ public:
     void respawnPlayer()
     {
         player.place(spawnPoint);
+        player.activate();
     }
 
-    void die()
+    void restart()
     {
-        respawnPlayer();
         for (auto& entity: physicalEntities)
         {
             entity->reset();
         }
+        respawnPlayer();
+    }
+
+    void die()
+    {
+        player.stop();        
     }
 
     void goOn()
@@ -1149,6 +1178,8 @@ private:
                         case SDLK_SPACE:
                             player.jump();
                             break;
+                        case SDLK_r:
+                            game.restart();
                         /* case SDLK_UP:
                             m_cameraRotationDirection = CameraRotationDirection::positiveX;
                             break;
