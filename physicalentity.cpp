@@ -47,3 +47,8 @@ void PhysicalEntity::place(const glm::vec3 & newPosition)
 PhysicalEntity::PhysicalEntity(const glm::vec3 &position, FloatingPointType width, FloatingPointType length, FloatingPointType height) : position{position}, width{width}, height{height}, length{length}
 {
 }
+
+void PhysicalEntity::translate(const glm::vec3& offset)
+{
+    position += offset;
+}

@@ -110,6 +110,7 @@ namespace
     };
 
     const MovingBlockCreateInformation standardMBCreateInfo{.5f, .5f, 4.f, MovingDirection::forward};
+    const MovingBlockCreateInformation elevatorMBCreateInfo{.5f, .5, 4.f, MovingDirection::up};
 
     const std::vector<ObjectCreateInformation> objectsCreateInformation{
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}, EntityType::regularBlock, {}, {}},
@@ -121,8 +122,10 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{6.f, 3.f, 6.f}, glm::vec3{.25f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{7.f, 3.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}}
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{6.f, 3.f, 5.5f}, glm::vec3{.25f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{7.f, 3.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
+        {"models/cube.obj", "textures/plank.png", glm::vec3{8.f, 3.f, 1.f}, glm::vec3{.25}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{elevatorMBCreateInfo}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{9.f, 3.f, 5.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}}
     };
 
     const glm::vec3 spawnPoint{0.f, 0.f, 3.f};
@@ -508,7 +511,7 @@ DisplayablePhysicalEntity::DisplayablePhysicalEntity(const glm::vec3& position,F
 
 void DisplayablePhysicalEntity::translate(const glm::vec3 & offset)
 {
-    position += offset;
+    PhysicalEntity::translate(offset);
     updateModelMatrix();
 }
 
@@ -595,9 +598,11 @@ public:
 
     void reset() override
     {
-        translate(initialPosition - position);
+        glm::vec3 offset{0.f, 0.f, initialPosition.z - position.z};
+        translate(offset);
         state = State::notCollided;
         verticalSpeed = 0;
+        passedTime = 0;
     }
 
     void advance(float dt) override
@@ -635,7 +640,7 @@ class Player : public PhysicalEntity
 {
 public:
     Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed = 1.);
-    void move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const &collidingEntities);
+    void move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &collidingEntities);
     void rotate(float diffAngleX, float diffAngleZ);
     void jump();
     glm::mat4 createViewMatrix() const;
@@ -643,7 +648,7 @@ public:
 private:
     FloatingPointType cameraZOffset = .5f;
     enum class State {falling, standing, walking};
-    bool detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const &);
+    const std::unique_ptr<DisplayablePhysicalEntity>& detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &);
     State state = State::falling;
     void translate(MovingDirection direction, float dt);
     glm::mat4 createRotationMatrix() const;
@@ -655,11 +660,11 @@ private:
     glm::mat4 view;
 };
 
-Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, length, height), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}, view{glm::translate(glm::mat4{1.f}, glm::vec3{0.f, 0.f,cameraZOffset})}
+Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, length, height), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
 {
 }
 
-void Player::move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const &collidingEntities)
+void Player::move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &collidingEntities)
 {
     translate(direction, dt);
     
@@ -668,9 +673,10 @@ void Player::move(float dt, MovingDirection direction, std::vector<std::unique_p
     {
         if (verticalSpeed < 0)
         {
-            while (detectCollision(collidingEntities))
+            while (const auto& collidedEntity = detectCollision(collidingEntities))
             {
-                restoreFalling();
+                /* restoreFalling(); */
+                position.z = collidedEntity->getPosition().z + collidedEntity->getSize().z / 2 + height / 2 + std::numeric_limits<FloatingPointType>::epsilon() * 4.f;
             }
             state = State::standing;
             verticalSpeed = 0;
@@ -705,13 +711,21 @@ void Player::jump()
 glm::mat4 Player::createViewMatrix() const
 {
     const auto rotationMatrix = createRotationMatrix();
-    return glm::translate(glm::transpose(rotationMatrix), -position);
+    return glm::translate(glm::transpose(rotationMatrix), -position - glm::vec3{0.f, 0.f, cameraZOffset});
 }
 
-bool Player::detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const & collidingEntities)
+const std::unique_ptr<DisplayablePhysicalEntity>& Player::detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> & collidingEntities)
 {
-    return std::any_of(collidingEntities.begin(), collidingEntities.end(), [this] (const std::unique_ptr<DisplayablePhysicalEntity>& pEntity) {
+    auto itCollidedEntity = std::find_if(collidingEntities.begin(), collidingEntities.end(), [this] (const std::unique_ptr<DisplayablePhysicalEntity>& pEntity) {
         return pEntity->collide(*this); });
+    if (itCollidedEntity == collidingEntities.end())
+    {
+        return 0;
+    }
+    else 
+    {
+        return (*itCollidedEntity);
+    }
 }
 
 void Player::translate(MovingDirection direction, float dt)
@@ -834,7 +848,7 @@ private:
     }
 
     Game& game;
-    float rotationSpeed = .5f;
+    float rotationSpeed = 1.f;
 };
 
 class HelloTriangleApplication {
