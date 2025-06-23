@@ -121,7 +121,7 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{6.f, 3.f, 5.f}, glm::vec3{.25f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{6.f, 3.f, 6.f}, glm::vec3{.25f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{7.f, 3.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}}
     };
 
@@ -641,6 +641,7 @@ public:
     glm::mat4 createViewMatrix() const;
 
 private:
+    FloatingPointType cameraZOffset = .5f;
     enum class State {falling, standing, walking};
     bool detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> const &);
     State state = State::falling;
@@ -654,7 +655,7 @@ private:
     glm::mat4 view;
 };
 
-Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, length, height), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
+Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, length, height), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}, view{glm::translate(glm::mat4{1.f}, glm::vec3{0.f, 0.f,cameraZOffset})}
 {
 }
 
@@ -807,8 +808,8 @@ public:
             const auto yDistance = distanceVector.y;
             const auto verticalDistance = glm::abs(distanceVector.z);
             const auto deviationAngle = glm::atan(yDistance / verticalDistance) - angle;
-            const auto shortSideDistance = glm::sin(deviationAngle) * distance;
-            const auto longSideDistance = glm::cos(deviationAngle) * distance;
+            const auto shortSideDistance = glm::abs(glm::sin(deviationAngle)) * distance;
+            const auto longSideDistance = glm::abs(glm::cos(deviationAngle)) * distance;
             
             const auto leftBoundary = position.x - width / 2;
             const auto otherLeftBoundary = other.getPosition().x - other.getSize().x / 2;
@@ -829,10 +830,11 @@ private:
     void advance(float dt) override
     {
         rotate(dt * rotationSpeed);
+        std::cout << std::format("rotating blade angle: {}", angle) << std::endl;
     }
 
     Game& game;
-    float rotationSpeed = 1.f;
+    float rotationSpeed = .5f;
 };
 
 class HelloTriangleApplication {
