@@ -123,6 +123,8 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{/* 6.f, 3.f, 4.f */ 1.f, 0.f, 2.f}, glm::vec3{.25f, .25f, 4.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}}
     };
+
+    const glm::vec3 spawnPoint{0.f, 0.f, 3.f};
     
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -571,98 +573,6 @@ private:
     State state = State::movingForward;
 };
 
-class RotatingBlade: public DisplayablePhysicalEntity
-{
-    /* struct Line
-    {
-        glm::vec3 endpoint1;
-        glm::vec3 endpoint2;
-    }; */
-
-
-
-    static std::array<glm::vec3, 8> getObjectCorners(const glm::vec3& position, const glm::vec3& size)
-    {
-        std::array<glm::vec3, 8> result;
-        for (size_t xOffset = 0; xOffset < 2; xOffset++)
-        {
-            for (size_t yOffset = 0; yOffset < 2; yOffset++)
-            {
-                for(size_t zOffset = 0; zOffset < 2; zOffset++)
-                {
-                    result[4*xOffset + 2*yOffset + zOffset] = glm::vec3{
-                        position.x + (float(xOffset) - .5) * size.x,
-                        position.y + (float(yOffset) - .5) * size.y,
-                        position.z + (float(zOffset) - .5) * size.z};
-                }
-            }
-        }
-        return result;
-    }
-
-   /*  static std::array<Line, 12> getObjectEdges(const CornerArray& corners) 
-    {
-        return {
-            Line{corners[0][0][0], corners[0][0][1]}, 
-            Line{corners[0][1][0], corners[0][1][1]},
-            Line{corners[1][0][0], corners[0][1][1]},
-            Line{corners[1][1][0], corners[1][1][1]},
-            Line{corners[0][0][0], corners[0][1][0]},
-            Line{corners[0][0][1], corners[0][1][1]},
-            Line{corners[1][0][0], corners[1][1][0]},
-            Line{corners[1][0][1], corners[1][1][1]},
-            Line{corners[0][0][0], corners[1][0][0]},
-            Line{corners[0][0][1], corners[1][0][1]},
-            Line{corners[0][1][0], corners[1][1][0]},
-            Line{corners[0][1][1], corners[1][1][1]}
-        };
-    } */
-
-
-public:
-    RotatingBlade(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, glm::vec3 rotationAxis): DisplayablePhysicalEntity(position, width, length, height, object, rotationAxis) {}
-
-    bool collide(const PhysicalEntity& other) override
-    {
-        const auto otherCorners = getObjectCorners(other.getPosition(), other.getSize());
-        
-        
-         for (const auto& corner: otherCorners)
-        {
-            const glm::vec3 distanceVector = position - corner;
-            const auto distance = glm::l2Norm(distanceVector);
-            //std::cout << std::format("distance: {}\n", distance);
-            const auto yDistance = distanceVector.y;
-            const auto verticalDistance = glm::abs(distanceVector.z);
-            const auto deviationAngle = glm::atan(yDistance / verticalDistance) - angle;
-            const auto shortSideDistance = glm::sin(deviationAngle) * distance;
-            const auto longSideDistance = glm::cos(deviationAngle) * distance;
-            //std::cout << std::format("distance: {}, vertical distance: {}, horizontal distance: {}, side distance: {}\n", distance, verticalDistance, horizontalDistance, sideDistance);
-            
-            const auto leftBoundary = position.x - width / 2;
-            const auto otherLeftBoundary = other.getPosition().x - other.getSize().x / 2;
-            const auto rightBoundary = position.x + width / 2;
-            const auto otherRightBoundary = other.getPosition().x + other.getSize().x / 2;
-            const bool overlapX = rightBoundary >= otherLeftBoundary && leftBoundary <= otherRightBoundary;
-            if (shortSideDistance < width && longSideDistance < height && overlapX)
-            {
-                return true;
-            }
-        }
-            
-        return false;
-    }
-
-private:
-    void advance(float dt) override
-    {
-        rotate(dt * rotationSpeed);
-    }
-
-
-    float rotationSpeed = 1.f;
-};
-
 class FallingBlock: public DisplayablePhysicalEntity
 {
 public:
@@ -815,6 +725,84 @@ glm::mat4 Player::createZRotationMatrix() const
     return glm::rotate(glm::mat4{1.f}, zAngle, glm::vec3{Axes::z});
 }
 
+class Game
+{
+public:
+    Game(Player& player): player{player} {}
+
+    void die()
+    {
+        player.place(spawnPoint);
+    }
+
+private:
+    Player& player;
+};
+
+class RotatingBlade: public DisplayablePhysicalEntity
+{
+
+    static std::array<glm::vec3, 8> getObjectCorners(const glm::vec3& position, const glm::vec3& size)
+    {
+        std::array<glm::vec3, 8> result;
+        for (size_t xOffset = 0; xOffset < 2; xOffset++)
+        {
+            for (size_t yOffset = 0; yOffset < 2; yOffset++)
+            {
+                for(size_t zOffset = 0; zOffset < 2; zOffset++)
+                {
+                    result[4*xOffset + 2*yOffset + zOffset] = glm::vec3{
+                        position.x + (float(xOffset) - .5) * size.x,
+                        position.y + (float(yOffset) - .5) * size.y,
+                        position.z + (float(zOffset) - .5) * size.z};
+                }
+            }
+        }
+        return result;
+    }
+
+public:
+    RotatingBlade(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, glm::vec3 rotationAxis, Game& game): DisplayablePhysicalEntity(position, width, length, height, object, rotationAxis), game{game} {}
+
+    bool collide(const PhysicalEntity& other) override
+    {
+        const auto otherCorners = getObjectCorners(other.getPosition(), other.getSize());
+        
+        for (const auto& corner: otherCorners)
+        {
+            const glm::vec3 distanceVector = position - corner;
+            const auto distance = glm::l2Norm(distanceVector);
+            const auto yDistance = distanceVector.y;
+            const auto verticalDistance = glm::abs(distanceVector.z);
+            const auto deviationAngle = glm::atan(yDistance / verticalDistance) - angle;
+            const auto shortSideDistance = glm::sin(deviationAngle) * distance;
+            const auto longSideDistance = glm::cos(deviationAngle) * distance;
+            
+            const auto leftBoundary = position.x - width / 2;
+            const auto otherLeftBoundary = other.getPosition().x - other.getSize().x / 2;
+            const auto rightBoundary = position.x + width / 2;
+            const auto otherRightBoundary = other.getPosition().x + other.getSize().x / 2;
+            const bool overlapX = rightBoundary >= otherLeftBoundary && leftBoundary <= otherRightBoundary;
+            if (shortSideDistance < width && longSideDistance < height && overlapX)
+            {
+                game.die();
+                return true;
+            }
+        }
+            
+        return false;
+    }
+
+private:
+    void advance(float dt) override
+    {
+        rotate(dt * rotationSpeed);
+    }
+
+    Game& game;
+    float rotationSpeed = 1.f;
+};
+
 class HelloTriangleApplication {
 public:
     void run() {
@@ -845,8 +833,10 @@ private:
     SwapChain m_swapChain;
     DepthImage m_depthImage;
 
-    Player player{{0.f, 0.f, 3.f}, .2f, .2f, 1.8f, 1.f};
+    Player player{spawnPoint, .2f, .2f, 1.8f, 1.f};
     std::vector<PhysicalEntity> blocks;
+
+    Game game{player};
 
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
@@ -941,7 +931,7 @@ private:
             case rotatingBlade:
                 {
                     const auto& rbCreateInfo = createInfo.rbCreateInfo.value();
-                    return std::make_unique<RotatingBlade>(createInfo.position, size.x, size.y, size.z, object, rbCreateInfo.rotationAxis);
+                    return std::make_unique<RotatingBlade>(createInfo.position, size.x, size.y, size.z, object, rbCreateInfo.rotationAxis, game);
                 }
             default:
                 throw std::runtime_error("invalid entity type!");

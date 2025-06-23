@@ -38,6 +38,12 @@ void PhysicalEntity::restoreFalling()
     position -= glm::vec3{upAxis} * lastFallHeight;
 }
 
+void PhysicalEntity::place(const glm::vec3 & newPosition)
+{
+    position = newPosition;
+    verticalSpeed = 0;
+}
+
 PhysicalEntity::PhysicalEntity(const glm::vec3 &position, FloatingPointType width, FloatingPointType length, FloatingPointType height) : position{position}, width{width}, height{height}, length{length}
 {
 }
