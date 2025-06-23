@@ -16,9 +16,10 @@ public:
     void place(const glm::vec3& newPosition);
     virtual void reset() {}
     virtual void translate(const glm::vec3&);
-
-protected:
     FloatingPointType verticalSpeed = 0;
+    
+protected:
+    
     FloatingPointType fallingAcceleration = -9;
     glm::vec3 position;
     FloatingPointType width;
