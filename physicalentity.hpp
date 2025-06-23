@@ -14,6 +14,7 @@ public:
     const glm::vec3& getPosition() const { return position; }
     const glm::vec3 getSize() const { return {width, length, height}; }
     void place(const glm::vec3& newPosition);
+    virtual void reset() {}
 
 protected:
     FloatingPointType verticalSpeed = 0;

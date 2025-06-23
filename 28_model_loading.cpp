@@ -121,7 +121,8 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{/* 6.f, 3.f, 4.f */ 1.f, 0.f, 2.f}, glm::vec3{.25f, .25f, 4.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}}
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{6.f, 3.f, 5.f}, glm::vec3{.25f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{7.f, 3.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}}
     };
 
     const glm::vec3 spawnPoint{0.f, 0.f, 3.f};
@@ -159,21 +160,25 @@ namespace
         return result + "]";
     }
 
-   /*  template<size_t nDimensions, typename type>
-    std::string toString(const glm::vec<nDimensions, type>& vector)
+    /* template<size_t nDimensions, typename type>
+    std::string toString(glm::vec<nDimensions, type> vector)
     {
         std::string result = "[";
-        for (size_t dimension = 0; dimension < nDimensions; dimension++)
+        for (glm::length_t dimension = 0; dimension < nDimensions; dimension++)
         {
             if (dimension)
             {
                 result += ", ";
             }
-            result += vector[dimension];
+            result += vector [dimension];
         }
-
         return result + "]";
     } */
+
+    std::string toString(const glm::vec3& vector)
+    {
+        return "["s + std::to_string(vector.x) + ", " + std::to_string(vector.y) + ", " + std::to_string(vector.z) + "]";
+    }
 
     template<typename T>
     std::ostream& operator<< (std::ostream& out, const std::vector<T>& vector)
@@ -576,7 +581,7 @@ private:
 class FallingBlock: public DisplayablePhysicalEntity
 {
 public:
-    FallingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject& object): DisplayablePhysicalEntity(position, width, length, height, object) {}
+    FallingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject& object): DisplayablePhysicalEntity(position, width, length, height, object), initialPosition{position} {}
     bool collide(const PhysicalEntity& other) override
     {
         const bool result = PhysicalEntity::collide(other);
@@ -586,6 +591,13 @@ public:
         }
 
         return result;
+    }
+
+    void reset() override
+    {
+        translate(initialPosition - position);
+        state = State::notCollided;
+        verticalSpeed = 0;
     }
 
     void advance(float dt) override
@@ -611,6 +623,7 @@ private:
         collided,
         falling
     };
+    glm::vec3 initialPosition;
     State state = State::notCollided;
     float passedTime = 0;
     float timeOffset = 1.f;
@@ -728,15 +741,34 @@ glm::mat4 Player::createZRotationMatrix() const
 class Game
 {
 public:
-    Game(Player& player): player{player} {}
+    Game(Player& player, std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities): player{player}, physicalEntities{physicalEntities} {}
 
-    void die()
+    void respawnPlayer()
     {
         player.place(spawnPoint);
     }
 
+    void die()
+    {
+        respawnPlayer();
+        for (auto& entity: physicalEntities)
+        {
+            entity->reset();
+        }
+    }
+
+    void goOn()
+    {
+        if (player.getPosition().z < minPlayerHeight)
+        {
+            die();
+        }
+    }
+
 private:
+    const FloatingPointType minPlayerHeight = -20.f;
     Player& player;
+    std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities;
 };
 
 class RotatingBlade: public DisplayablePhysicalEntity
@@ -834,14 +866,12 @@ private:
     DepthImage m_depthImage;
 
     Player player{spawnPoint, .2f, .2f, 1.8f, 1.f};
-    std::vector<PhysicalEntity> blocks;
-
-    Game game{player};
 
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
 
     std::vector<std::unique_ptr<DisplayablePhysicalEntity>> m_displayableEntities;
+    Game game{player, m_displayableEntities};
 
     bool m_rotatingCamera = false;
 
@@ -2359,6 +2389,8 @@ private:
         const auto viewMatrix = player.createViewMatrix();
         //rotate(dt);
         player.move(dt, m_cameraDirection, m_displayableEntities);
+        game.goOn();
+
 
 		for( auto& displayablePhysicalEntity : m_displayableEntities ) {
 	        //object.m_ubo.model = glm::rotate(object.m_ubo.model, dt * 1.0f * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
