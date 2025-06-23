@@ -126,7 +126,11 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{7.f, 3.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
         {"models/cube.obj", "textures/plank.png", glm::vec3{8.f, 3.f, 1.f}, glm::vec3{.25}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{elevatorMBCreateInfo}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{9.f, 3.f, 3.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, -2.f}, glm::vec3{4.f, .25f, .25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{2}}}
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{10.f, 3.f, 3.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{10.f, 4.f, 4.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{11.f, 4.f, 5.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{12.5f, 4.f, 4.f}, glm::vec3{2.f, .25f, .25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{2}}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{12.f, 4.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}}
     };
 
     const glm::vec3 spawnPoint{0.f, 0.f, 3.f};
