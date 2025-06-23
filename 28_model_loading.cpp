@@ -88,12 +88,18 @@ namespace
         glm::length_t rotationAxisIndex;
     };
 
+    struct DisappearingBlockCreateInformation
+    {
+        float timeOffset;
+    };
+
     enum class EntityType
     {
         regularBlock,
         movingBlock,
         fallingBlock,
-        rotatingBlade
+        rotatingBlade,
+        disappearingBlock
     };
 
     struct ObjectCreateInformation
@@ -104,6 +110,7 @@ namespace
         EntityType type;
         std::optional<MovingBlockCreateInformation> mbCreateInfo;
         std::optional<RotatingBladeCreateInformation> rbCreateInfo;
+        std::optional<DisappearingBlockCreateInformation> dbCreateInfo;
     };
 
     const MovingBlockCreateInformation standardMBCreateInfo{.5f, .5f, 4.f, MovingDirection::forward};
@@ -112,34 +119,35 @@ namespace
         {EntityType::fallingBlock, "textures/falling_block.png"}, 
         {EntityType::regularBlock, "textures/stone.png"},
         {EntityType::movingBlock, "textures/moving_block.png"},
-        {EntityType::rotatingBlade, "textures/rotating_blade.png"}
+        {EntityType::rotatingBlade, "textures/rotating_blade.png"},
+        {EntityType::disappearingBlock, "textures/disappearing_block.png"}
     };
     const std::string blockModel = "models/cube.obj";
 
     const std::vector<ObjectCreateInformation> objectsCreateInformation{
-        {glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{.25f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}, {}},
-        {glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
-        {glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
-        {glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
-        {glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{6.f, 3.f, 5.5f}, glm::vec3{.05f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{0}}},
+        {glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{.25f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}, {}, {}},
+        {glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{6.f, 3.f, 5.5f}, glm::vec3{.05f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{0}}, {}},
         {glm::vec3{7.f, 3.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{8.f, 3.f, 1.f}, glm::vec3{.25}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{elevatorMBCreateInfo}, {}},
-        {glm::vec3{9.f, 3.f, 3.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{10.f, 3.f, 3.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
-        {glm::vec3{10.f, 4.f, 4.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
-        {glm::vec3{11.f, 4.f, 5.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{12.5f, 4.f, 4.f}, glm::vec3{2.f, .25f, .05f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{2}}},
-        {glm::vec3{12.f, 4.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{13.f, 4.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{14.f, 4.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{15.f, 4.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{16.f, 4.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{17.f, 4.f, 2.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
+        {glm::vec3{8.f, 3.f, 1.f}, glm::vec3{.25}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{elevatorMBCreateInfo}, {}, {}},
+        {glm::vec3{9.f, 3.f, 3.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{10.f, 3.f, 3.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{10.f, 4.f, 4.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{11.f, 4.f, 5.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{12.5f, 4.f, 4.f}, glm::vec3{2.f, .25f, .05f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{2}}, {}},
+        {glm::vec3{12.f, 4.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{13.f, 4.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{1.5f}}},
+        {glm::vec3{14.f, 4.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{1.f}}},
+        {glm::vec3{15.f, 4.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{0.5f}}},
+        {glm::vec3{16.f, 4.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{0.f}}},
+        {glm::vec3{17.f, 4.f, 2.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
     };
 
     const glm::vec3 spawnPoint{0.f, 0.f, 3.f};
@@ -491,7 +499,11 @@ public:
     {
         return object;
     }
-    
+
+    bool getShouldBeDisplayed() const
+    {
+        return shouldBeDisplayed;
+    }
 protected:
     void rotate(const float angleDiff)
     {
@@ -511,10 +523,7 @@ protected:
         object.m_ubo.model = glm::scale(glm::rotate(glm::translate(glm::mat4{1.f}, position), angle, rotationAxis), {width, length, height});
     }
     
-    bool getShouldBeDisplayed() const
-    {
-        return shouldBeDisplayed;
-    }
+    
 
     void setShouldBeDisplayed(bool newValue)
     {
@@ -878,15 +887,49 @@ private:
     float rotationSpeed = 1.f;
 };
 
-class DisappearingBlock: DisplayablePhysicalEntity
+class DisappearingBlock: public DisplayablePhysicalEntity
 {
+    enum class State {appearent, disappearent};
+
 public:
-    DisappearingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject object, float timeOffset): DisplayablePhysicalEntity(position, width, length, height, object), timeOffset{timeOffset} {}
+    DisappearingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject object, float timeOffset): DisplayablePhysicalEntity(position, width, length, height, object), passedTime{timeOffset} {}
+    void advance (float dt) override
+    {
+        passedTime += dt;
+        if (state == State::appearent)
+        {
+            if (passedTime > appearentDuration)
+            {
+                state = State::disappearent;
+                passedTime = 0;
+                setShouldBeDisplayed(false);
+            }
+        }
+        else
+        {
+            if (passedTime > disappearentDuration)
+            {
+                state = State::appearent;
+                passedTime = 0;
+                setShouldBeDisplayed(true);
+            }
+        }
+    }
+
+    bool collide(const PhysicalEntity& other) override
+    {
+        if (getShouldBeDisplayed())
+        {
+            return PhysicalEntity::collide(other);
+        }
+        return false;
+    }
 
 private:
-    float timeOffset;
-    float appearentDuration = 1.f;
-    float disappearentDuration = .5f;
+    float appearentDuration = 3.f;
+    float disappearentDuration = 1.f;
+    State state = State::appearent;
+    float passedTime = 0;
 };
 
 class HelloTriangleApplication {
@@ -1017,6 +1060,11 @@ private:
                 {
                     const auto& rbCreateInfo = createInfo.rbCreateInfo.value();
                     return std::make_unique<RotatingBlade>(createInfo.position, size.x, size.y, size.z, object, rbCreateInfo.rotationAxisIndex, game);
+                }
+            case disappearingBlock:
+                {
+                    const auto& dbCreateInfo = createInfo.dbCreateInfo.value();
+                    return std::make_unique<DisappearingBlock>(createInfo.position, size.x, size.y, size.z, object, dbCreateInfo.timeOffset);
                 }
             default:
                 throw std::runtime_error("invalid entity type!");
@@ -2346,18 +2394,22 @@ private:
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
         for( auto& displayablePhysicalEntity : m_displayableEntities ) {
-            auto& object = displayablePhysicalEntity->getDisplayObject();
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipeline);
-            VkBuffer vertexBuffers[] = {object.m_geometry.m_vertexBuffer};
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+            if (displayablePhysicalEntity->getShouldBeDisplayed())
+            {
+                auto& object = displayablePhysicalEntity->getDisplayObject();
+                vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipeline);
+                VkBuffer vertexBuffers[] = {object.m_geometry.m_vertexBuffer};
+                VkDeviceSize offsets[] = {0};
+                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-            // vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                // vkCmdBindIndexBuffer(commandBuffer, object.m_geometry.m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipelineLayout
-                , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
+                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, object.m_pipeline.m_pipelineLayout
+                    , 0, 1, &object.m_descriptorSets[currentFrame], 0, nullptr);
 
-            vkCmdDraw(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_vertices.size()), 1, 0, 0);
+                vkCmdDraw(commandBuffer, static_cast<uint32_t>(object.m_geometry.m_vertices.size()), 1, 0, 0);
+            }
+            
         }
 
         //----------------------------------------------------------------------------------
