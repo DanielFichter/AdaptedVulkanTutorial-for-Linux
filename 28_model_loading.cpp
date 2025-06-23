@@ -85,7 +85,7 @@ namespace
 
     struct RotatingBladeCreateInformation
     {
-        glm::vec3 rotationAxis;
+        glm::length_t rotationAxisIndex;
     };
 
     enum class EntityType
@@ -122,10 +122,11 @@ namespace
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{6.f, 3.f, 5.5f}, glm::vec3{.25f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{Axes::x}}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{6.f, 3.f, 5.5f}, glm::vec3{.25f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{0}}},
         {"models/cube.obj", "textures/wood.jpg", glm::vec3{7.f, 3.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
         {"models/cube.obj", "textures/plank.png", glm::vec3{8.f, 3.f, 1.f}, glm::vec3{.25}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{elevatorMBCreateInfo}, {}},
-        {"models/cube.obj", "textures/wood.jpg", glm::vec3{9.f, 3.f, 5.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}}
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{9.f, 3.f, 3.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
+        {"models/cube.obj", "textures/wood.jpg", glm::vec3{1.f, 0.f, -2.f}, glm::vec3{4.f, .25f, .25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{2}}}
     };
 
     const glm::vec3 spawnPoint{0.f, 0.f, 3.f};
@@ -809,7 +810,7 @@ class RotatingBlade: public DisplayablePhysicalEntity
     }
 
 public:
-    RotatingBlade(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, glm::vec3 rotationAxis, Game& game): DisplayablePhysicalEntity(position, width, length, height, object, rotationAxis), game{game} {}
+    RotatingBlade(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, glm::length_t rotationAxisIndex, Game& game): DisplayablePhysicalEntity(position, width, length, height, object, glm::vec3{float(rotationAxisIndex == 0), float(rotationAxisIndex == 1), float(rotationAxisIndex == 2) }), game{game}, rotationAxisIndex{rotationAxisIndex} {}
 
     bool collide(const PhysicalEntity& other) override
     {
@@ -819,18 +820,20 @@ public:
         {
             const glm::vec3 distanceVector = position - corner;
             const auto distance = glm::l2Norm(distanceVector);
-            const auto yDistance = distanceVector.y;
-            const auto verticalDistance = glm::abs(distanceVector.z);
-            const auto deviationAngle = glm::atan(yDistance / verticalDistance) - angle;
-            const auto shortSideDistance = glm::abs(glm::sin(deviationAngle)) * distance;
-            const auto longSideDistance = glm::abs(glm::cos(deviationAngle)) * distance;
+            const glm::length_t planeAxis1Index = (rotationAxisIndex + 1) % 3;
+            const glm::length_t planeAxis2Index = (rotationAxisIndex + 2) % 3;
+            const auto planeDistance1 = distanceVector[planeAxis1Index];
+            const auto planeDistance2 = glm::abs(distanceVector[planeAxis2Index]);
+            const auto deviationAngle = glm::atan(planeDistance1 / planeDistance2) - angle;
+            const auto sideDistance1 = glm::abs(glm::sin(deviationAngle)) * distance;
+            const auto sideDistance2 = glm::abs(glm::cos(deviationAngle)) * distance;
             
-            const auto leftBoundary = position.x - width / 2;
-            const auto otherLeftBoundary = other.getPosition().x - other.getSize().x / 2;
-            const auto rightBoundary = position.x + width / 2;
-            const auto otherRightBoundary = other.getPosition().x + other.getSize().x / 2;
-            const bool overlapX = rightBoundary >= otherLeftBoundary && leftBoundary <= otherRightBoundary;
-            if (shortSideDistance < width && longSideDistance < height && overlapX)
+            const auto minusBoundary = position[rotationAxisIndex] - getSize()[rotationAxisIndex] / 2;
+            const auto otherMinusBoundary = other.getPosition()[rotationAxisIndex] - other.getSize()[rotationAxisIndex] / 2;
+            const auto plusBoundary = position[rotationAxisIndex] + getSize()[rotationAxisIndex] / 2;
+            const auto otherPlusBoundary = other.getPosition()[rotationAxisIndex] + other.getSize()[rotationAxisIndex] / 2;
+            const bool rotationAxisOverlap = plusBoundary >= otherMinusBoundary && minusBoundary <= otherPlusBoundary;
+            if (sideDistance1 < getSize()[planeAxis1Index] && sideDistance2 < getSize()[planeAxis2Index] && rotationAxisOverlap)
             {
                 game.die();
                 return true;
@@ -847,6 +850,7 @@ private:
         std::cout << std::format("rotating blade angle: {}", angle) << std::endl;
     }
 
+    glm::length_t rotationAxisIndex = 0;
     Game& game;
     float rotationSpeed = 1.f;
 };
@@ -977,7 +981,7 @@ private:
             case rotatingBlade:
                 {
                     const auto& rbCreateInfo = createInfo.rbCreateInfo.value();
-                    return std::make_unique<RotatingBlade>(createInfo.position, size.x, size.y, size.z, object, rbCreateInfo.rotationAxis, game);
+                    return std::make_unique<RotatingBlade>(createInfo.position, size.x, size.y, size.z, object, rbCreateInfo.rotationAxisIndex, game);
                 }
             default:
                 throw std::runtime_error("invalid entity type!");
