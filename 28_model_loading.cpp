@@ -528,10 +528,6 @@ protected:
     {
         object.m_ubo.model = glm::scale(glm::rotate(glm::translate(glm::mat4{1.f}, position), angle, rotationAxis), {width, length, height});
     }
-    
-    
-
-   
 
     glm::vec3 rotationAxis;
     float angle = 0.f;
@@ -856,7 +852,7 @@ public:
         int width, height;
         SDL_GetWindowSize(window, &width, &height);
         
-        ImGui::SetNextWindowSize(ImVec2(width, height));
+        ImGui::SetNextWindowSize(ImVec2(float(width), float(height)));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.9f, 0.2f, 0.f, .5f));
         bool open;
         ImGui::Begin("game over", &open, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
@@ -881,11 +877,43 @@ public:
             {
                 die();
             }
+            else if (player.getPosition().x >= 17.f && player.getPosition().z >= 2.5)
+            {
+                win();
+            }
         }
-        else 
+        else if (state == State::won)
+        {
+            ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
+            int width, height;
+            SDL_GetWindowSize(window, &width, &height);
+            
+            ImGui::SetNextWindowSize(ImVec2(float(width), float(height)));
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.f, 0.9f, 0.f, .5f));
+            bool open;
+            ImGui::Begin("game over", &open, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+            
+            //ImGui_ImplSDL2_InitForVulkan(m_sdlWindow);
+            ImGui::PushFont(futuraFont);
+            centeredText("");
+            centeredText("");
+            centeredText("");
+            centeredText("You won!");
+            centeredText("press R to resart the game");
+            ImGui::PopFont();
+            ImGui::PopStyleColor();
+            ImGui::End();
+        }
+        else
         {
             displayGameOver();
         }
+    }
+
+    void win()
+    {
+        player.stop();
+        state = State::won;
     }
 
     void setRenderer(SDL_Renderer* newRenderer)
@@ -909,7 +937,7 @@ public:
     }
 
 private:
-    enum class State {playing, gameOver};
+    enum class State {playing, gameOver, won};
     const static VkClearColorValue playingColor; 
     const static VkClearColorValue gameOverColor;
     const FloatingPointType minPlayerHeight = -20.f;
@@ -998,7 +1026,7 @@ class DisappearingBlock: public DisplayablePhysicalEntity
     enum class State {appearent, disappearent};
 
 public:
-    DisappearingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject object, float timeOffset): DisplayablePhysicalEntity(position, width, length, height, object), passedTime{timeOffset} {}
+    DisappearingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject object, float timeOffset): DisplayablePhysicalEntity(position, width, length, height, object), passedTime{timeOffset}, timeOffset{timeOffset} {}
     void advance (float dt) override
     {
         passedTime += dt;
@@ -1022,6 +1050,12 @@ public:
         }
     }
 
+    void reset() override
+    {
+        passedTime = timeOffset;
+        state = State::appearent;
+    }
+
     bool collide(const PhysicalEntity& other) override
     {
         if (getShouldBeDisplayed())
@@ -1036,6 +1070,7 @@ private:
     float disappearentDuration = 1.f;
     State state = State::appearent;
     float passedTime = 0;
+    float timeOffset = 0;
 };
 
 class HelloTriangleApplication {
