@@ -504,6 +504,11 @@ public:
     {
         return shouldBeDisplayed;
     }
+
+    void setShouldBeDisplayed(bool newValue)
+    {
+        shouldBeDisplayed = newValue;
+    }
 protected:
     void rotate(const float angleDiff)
     {
@@ -525,10 +530,7 @@ protected:
     
     
 
-    void setShouldBeDisplayed(bool newValue)
-    {
-        shouldBeDisplayed = newValue;
-    }
+   
 
     glm::vec3 rotationAxis;
     float angle = 0.f;
@@ -812,7 +814,7 @@ glm::mat4 Player::createZRotationMatrix() const
 class Game
 {
 public:
-    Game(Player& player, std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities): player{player}, physicalEntities{physicalEntities} {}
+    Game(Player& player, std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities): player{player}, physicalEntities{physicalEntities}, clearColor{playingColor} {}
 
     void respawnPlayer()
     {
@@ -825,13 +827,20 @@ public:
         for (auto& entity: physicalEntities)
         {
             entity->reset();
+            entity->setShouldBeDisplayed(true);
         }
         respawnPlayer();
+        clearColor = playingColor;
     }
 
     void die()
     {
-        player.stop();        
+        player.stop();
+        for (auto& entity: physicalEntities)
+        {
+            entity->setShouldBeDisplayed(false);
+        }
+        clearColor = gameOverColor;
     }
 
     void goOn()
@@ -842,11 +851,22 @@ public:
         }
     }
 
+    VkClearColorValue getClearColor() const 
+    {
+        return clearColor;
+    }
+
 private:
+    const static VkClearColorValue playingColor; 
+    const static VkClearColorValue gameOverColor;
     const FloatingPointType minPlayerHeight = -20.f;
     Player& player;
     std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities;
+    VkClearColorValue clearColor = playingColor;
 };
+
+const VkClearColorValue Game::playingColor{{0.4f, 0.5f, 6.0f, 1.0f}};
+const VkClearColorValue Game::gameOverColor{{.9f, .0f, .0f, 1.f}};
 
 class RotatingBlade: public DisplayablePhysicalEntity
 {
@@ -1180,6 +1200,7 @@ private:
                             break;
                         case SDLK_r:
                             game.restart();
+                            break;
                         /* case SDLK_UP:
                             m_cameraRotationDirection = CameraRotationDirection::positiveX;
                             break;
@@ -2400,7 +2421,7 @@ private:
         renderPassInfo.renderArea.extent = swapChain.m_swapChainExtent;
 
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = {{0.4f, 0.5f, 6.0f, 1.0f}};
+        clearValues[0].color = game.getClearColor();
         clearValues[1].depthStencil = {1.0f, 0};
 
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
