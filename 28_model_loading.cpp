@@ -63,6 +63,7 @@
 #include <format>
 #include <numbers>
 
+
 using namespace std::string_literals;
 
 namespace
@@ -681,6 +682,7 @@ public:
     void stop();
     void activate();
     glm::mat4 createViewMatrix() const;
+    bool isActive() { return active; }
 
 private:
     FloatingPointType cameraZOffset = .5f;
@@ -827,28 +829,78 @@ public:
         for (auto& entity: physicalEntities)
         {
             entity->reset();
-            entity->setShouldBeDisplayed(true);
         }
         respawnPlayer();
-        clearColor = playingColor;
+        state = State::playing;
+        //clearColor = playingColor;
+    }
+
+    void centeredText(const std::string& text) 
+    {
+        auto windowWidth = ImGui::GetWindowSize().x;
+        auto textWidth   = ImGui::CalcTextSize(text.c_str()).x;
+
+        ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+        ImGui::Text(text.c_str());
     }
 
     void die()
     {
         player.stop();
-        for (auto& entity: physicalEntities)
-        {
-            entity->setShouldBeDisplayed(false);
-        }
-        clearColor = gameOverColor;
+        state = State::gameOver;  
+    }
+
+    void displayGameOver()
+    {
+        ImGui::SetNextWindowPos(ImVec2(0.f, 0.f));
+        int width, height;
+        SDL_GetWindowSize(window, &width, &height);
+        
+        ImGui::SetNextWindowSize(ImVec2(width, height));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.9f, 0.2f, 0.f, .5f));
+        bool open;
+        ImGui::Begin("game over", &open, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+        
+        //ImGui_ImplSDL2_InitForVulkan(m_sdlWindow);
+        ImGui::PushFont(futuraFont);
+        centeredText("");
+        centeredText("");
+        centeredText("");
+        centeredText("You died!");
+        centeredText("press R to respawn");
+        ImGui::PopFont();
+        ImGui::PopStyleColor();
+        ImGui::End();
     }
 
     void goOn()
     {
-        if (player.getPosition().z < minPlayerHeight)
+        if (state == State::playing)
         {
-            die();
+            if (player.getPosition().z < minPlayerHeight)
+            {
+                die();
+            }
         }
+        else 
+        {
+            displayGameOver();
+        }
+    }
+
+    void setRenderer(SDL_Renderer* newRenderer)
+    {
+        renderer = newRenderer;
+    }
+
+    void setFuturaFont(ImFont* newFuturaFont)
+    {
+        futuraFont = futuraFont;
+    }
+
+    void setWindow(SDL_Window* newWindow)
+    {
+        window = newWindow;
     }
 
     VkClearColorValue getClearColor() const 
@@ -857,12 +909,17 @@ public:
     }
 
 private:
+    enum class State {playing, gameOver};
     const static VkClearColorValue playingColor; 
     const static VkClearColorValue gameOverColor;
     const FloatingPointType minPlayerHeight = -20.f;
     Player& player;
     std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities;
     VkClearColorValue clearColor = playingColor;
+    SDL_Renderer* renderer = nullptr;
+    ImFont* futuraFont = nullptr;
+    SDL_Window* window;
+    State state = State::playing;
 };
 
 const VkClearColorValue Game::playingColor{{0.4f, 0.5f, 6.0f, 1.0f}};
@@ -997,6 +1054,8 @@ private:
     bool m_isMinimized = false;
     bool m_quit = false;
 
+    ImFont* m_futuraFont;
+    SDL_Renderer* m_renderer;
     VkInstance m_instance;
     VkDebugUtilsMessengerEXT m_debugMessenger;
     VkSurfaceKHR m_surface;
@@ -1052,6 +1111,8 @@ private:
 
         SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
         m_sdlWindow = SDL_CreateWindow("Hop Hop Hurray", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, window_flags);
+        m_renderer = SDL_CreateRenderer(m_sdlWindow, -1, 0);
+        game.setWindow(m_sdlWindow);
     }
 
     void initVMA(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, VmaAllocator& allocator) {
@@ -1235,13 +1296,16 @@ private:
 
                 if (event.type == SDL_MOUSEMOTION && m_rotatingCamera)
                 {
-                    const auto xDiff = event.motion.xrel;
-                    const auto yDiff = event.motion.yrel;
+                    if (player.isActive())
+                    {
+                        const auto xDiff = event.motion.xrel;
+                        const auto yDiff = event.motion.yrel;
 
-                    constexpr static float mouseSensitivity = glm::radians(.1f);
-                    const auto diffAngleX = static_cast<float>(yDiff) * mouseSensitivity;
-                    const auto diffAngleZ = static_cast<float>(xDiff) * mouseSensitivity;
-                    player.rotate(diffAngleX, diffAngleZ);
+                        constexpr static float mouseSensitivity = glm::radians(.1f);
+                        const auto diffAngleX = static_cast<float>(yDiff) * mouseSensitivity;
+                        const auto diffAngleZ = static_cast<float>(xDiff) * mouseSensitivity;
+                        player.rotate(diffAngleX, diffAngleZ);
+                    }
                 }
 
                 if (event.type == SDL_MOUSEBUTTONDOWN)
@@ -1258,9 +1322,10 @@ private:
                 ImGui_ImplVulkan_NewFrame();
                 ImGui_ImplSDL2_NewFrame();
                 ImGui::NewFrame();
+                //ImGui::Begin("hello world!");
 
-                ImGui::ShowDemoWindow(); // Show demo window! :)
-
+                //ImGui::ShowDemoWindow(); // Show demo window! :)
+                
                 drawFrame(m_sdlWindow, m_surface, m_physicalDevice, m_device, m_vmaAllocator
                     , m_graphicsQueue, m_presentQueue, m_swapChain, m_depthImage
                     , m_renderPass, m_commandBuffers
@@ -1343,7 +1408,7 @@ private:
 
         vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
         vkDestroyInstance(m_instance, nullptr);
-
+        SDL_DestroyRenderer(m_renderer);
         SDL_DestroyWindow(m_sdlWindow);
         SDL_Quit();
 
@@ -2429,8 +2494,6 @@ private:
 
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        
-
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -2569,7 +2632,6 @@ private:
         , SwapChain& swapChain, DepthImage& depthImage, VkRenderPass renderPass, 
         std::vector<VkCommandBuffer>& commandBuffers, SyncObjects& syncObjects,
         uint32_t& currentFrame, bool& framebufferResized) {   
-
         vkWaitForFences(device, 1, &syncObjects.m_inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
@@ -2858,6 +2920,9 @@ private:
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
         //io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
+
+        m_futuraFont = io.Fonts->AddFontFromFileTTF("fonts/16020_FUTURAM.ttf", 70.f);
+        game.setFuturaFont(m_futuraFont);
 
         ImGui_ImplVulkan_LoadFunctions( VK_API_VERSION_1_0, &loadVolk );
 
