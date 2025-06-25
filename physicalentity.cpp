@@ -30,14 +30,7 @@ void PhysicalEntity::fall(float dt)
 {
     verticalSpeed += fallingAcceleration * dt;
     const glm::vec4 upAxis = directionToAxis.at(MovingDirection::up);
-    lastFallHeight = verticalSpeed * dt;
-    position += glm::vec3{upAxis} * lastFallHeight;
-}
-
-void PhysicalEntity::restoreFalling()
-{
-    const glm::vec4 upAxis = directionToAxis.at(MovingDirection::up);
-    position -= glm::vec3{upAxis} * lastFallHeight;
+    position += glm::vec3{upAxis} * verticalSpeed * dt;
 }
 
 void PhysicalEntity::place(const glm::vec3 & newPosition)

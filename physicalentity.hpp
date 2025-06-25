@@ -20,7 +20,6 @@ public:
     PhysicalEntity(const glm::vec3 &position, const glm::vec3& size);
     virtual std::optional<Collision> collide(const PhysicalEntity &other);
     virtual void fall(float dt);
-    void restoreFalling();
     virtual void advance(float dt) {}
     const glm::vec3& getPosition() const { return position; }
     const glm::vec3 getSize() const { return size; }
@@ -34,5 +33,4 @@ protected:
     FloatingPointType fallingAcceleration = -9;
     glm::vec3 position;
     glm::vec3 size;
-    FloatingPointType lastFallHeight = 0;
 };
