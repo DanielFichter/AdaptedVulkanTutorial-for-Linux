@@ -20,8 +20,8 @@ ConstantBuffer<UniformBufferObject> gParams;
 [shader("fragment")]
 float4 fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
 {
-    float3 lightPosition = { 20, 20, 20 };
-    float4 lightColor = { .5, .5, .5, 1};
+    float3 lightPosition = { 20, 0, 20 };
+    float4 lightColor = {.5, .5, .5, 1};
     float4x4 viewMatrix = gParams.view;
     float3 viewMatrixTranslation = { viewMatrix[0][3], viewMatrix[1][3], viewMatrix[2][3] };
     float3x3 viewMatrixRotation = float3x3(viewMatrix);
@@ -37,17 +37,13 @@ float4 fragmentMain(CoarseVertex coarseVertex : CoarseVertex) : SV_Target
     
     float3 halfVector = normalize(viewDirection + lightDirection);
 
-    float diffuseIntensity = diffuseCoefficient * mul(lightDirection, normal);
+    float diffuseIntensity = diffuseCoefficient * mul(normal, lightDirection);
     float4 diffuseColor = diffuseIntensity * texSampler.Sample(coarseVertex.uv);
-    float specularIntensity = specularCoefficient * pow(max(0, mul(normal, halfVector)), shininess) /* / max(0, mul(normal, lightDirection)) */;
+    float specularIntensity = specularCoefficient * pow(max(0, mul(normal, halfVector)), shininess);
     float4 specularColor = specularIntensity * lightColor;
 
-    return diffuseColor +  specularColor;
+    float ambientIntensity = .05;
+    float4 ambientColor = ambientIntensity;
+
+    return diffuseColor + specularColor + ambientColor;
 }
-
-
-
-
-
-
-

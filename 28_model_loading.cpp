@@ -698,10 +698,9 @@ private:
     glm::mat4 createRotationMatrix() const;
     glm::mat4 createZRotationMatrix() const;
     float xAngle = glm::atan(glm::sqrt(8.f) / 2.f);
-    float zAngle = glm::radians(180.f - 45.f);
+    float zAngle = glm::radians(-90.f);
     float translationSpeed;
     float rotationSpeed;
-    glm::mat4 view;
     bool active = true;
 };
 

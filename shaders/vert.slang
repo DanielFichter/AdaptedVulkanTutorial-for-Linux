@@ -42,9 +42,9 @@ VertexStageOutput vertexMain(AssembledVertex assembledVertex)
 
     float3 worldPosition = mul(gParams.model, float4(position, 1.0)).xyz;
     float3 viewPosition = mul(gParams.view, float4(worldPosition, 1.0)).xyz;
-    float3 worldNormal = mul(gParams.model, float4(normal, 1.0)).xyz;
+    float3 worldNormal = mul(float3x3(gParams.model), normal).xyz;
 
-    output.coarseVertex.normal   = worldNormal;
+    output.coarseVertex.normal = worldNormal;
     output.coarseVertex.uv = uv;
     output.coarseVertex.worldPosition = worldPosition;
     output.sv_position = mul(gParams.proj, float4(viewPosition, 1.0));
