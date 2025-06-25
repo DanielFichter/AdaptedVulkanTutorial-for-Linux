@@ -42,9 +42,9 @@
 #include "imgui.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_vulkan.h"
-#include "player.hpp"
 #include "movingdirection.hpp"
-#include "displayablephysicalentity.hpp"
+#include "floatingpointtype.hpp"
+#include "physicalentity.hpp"
 
 #include <iostream>
 #include <fstream>
