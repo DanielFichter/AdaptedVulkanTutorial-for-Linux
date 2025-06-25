@@ -495,7 +495,7 @@ struct DisplayObject
 class DisplayablePhysicalEntity: public PhysicalEntity
 {
 public:
-    DisplayablePhysicalEntity(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, const glm::vec3& rotationAxis = Axes::x);
+    DisplayablePhysicalEntity(const glm::vec3& position, const glm::vec3& size, const DisplayObject& object, const glm::vec3& rotationAxis = Axes::x);
     DisplayObject& getDisplayObject()
     {
         return object;
@@ -526,7 +526,7 @@ protected:
     }
     void updateModelMatrix()
     {
-        object.m_ubo.model = glm::scale(glm::rotate(glm::translate(glm::mat4{1.f}, position), angle, rotationAxis), {width, length, height});
+        object.m_ubo.model = glm::scale(glm::rotate(glm::translate(glm::mat4{1.f}, position), angle, rotationAxis), size);
     }
 
     glm::vec3 rotationAxis;
@@ -536,7 +536,7 @@ private:
     bool shouldBeDisplayed = true;
 };
 
-DisplayablePhysicalEntity::DisplayablePhysicalEntity(const glm::vec3& position,FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, const glm::vec3& rotationAxis) : PhysicalEntity(position, width, length, height), object{object}, rotationAxis{rotationAxis}
+DisplayablePhysicalEntity::DisplayablePhysicalEntity(const glm::vec3& position, const glm::vec3& size, const DisplayObject& object, const glm::vec3& rotationAxis) : PhysicalEntity(position, size), object{object}, rotationAxis{rotationAxis}
 {
     updateModelMatrix();
 }
@@ -551,7 +551,7 @@ class MovingBlock: public DisplayablePhysicalEntity
 {
     enum class State {movingForward, movingBackward, waitingFront, waitingBack};
 public:
-    MovingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType height, FloatingPointType length, const DisplayObject& object, FloatingPointType speed, float translationDuration, float waitingDuration, MovingDirection movingDirection): DisplayablePhysicalEntity(position, width, length, height, object), speed{speed}, translationDuration{translationDuration}, waitingDuration{waitingDuration}, movingDirection{movingDirection} {}
+    MovingBlock(const glm::vec3& position, const glm::vec3& size, const DisplayObject& object, FloatingPointType speed, float translationDuration, float waitingDuration, MovingDirection movingDirection): DisplayablePhysicalEntity(position, size, object), speed{speed}, translationDuration{translationDuration}, waitingDuration{waitingDuration}, movingDirection{movingDirection}, initialPosition{position} {}
 
     void advance(float dt) override
     {
@@ -568,6 +568,13 @@ public:
             default:
                 wait(dt);
         }
+    }
+
+    void reset() override
+    {
+        passedTime = 0;
+        state = State::movingForward;
+        position = initialPosition;
     }
 
     void wait(float dt)
@@ -611,12 +618,13 @@ private:
     float waitingDuration = 0;
     float passedTime = 0;
     State state = State::movingForward;
+    glm::vec3 initialPosition;
 };
 
 class FallingBlock: public DisplayablePhysicalEntity
 {
 public:
-    FallingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject& object): DisplayablePhysicalEntity(position, width, length, height, object), initialPosition{position} {}
+    FallingBlock(const glm::vec3& position, const glm::vec3& size, DisplayObject& object): DisplayablePhysicalEntity(position, size, object), initialPosition{position} {}
     bool collide(const PhysicalEntity& other) override
     {
         const bool result = PhysicalEntity::collide(other);
@@ -671,7 +679,7 @@ private:
 class Player : public PhysicalEntity
 {
 public:
-    Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed = 1.);
+    Player(glm::vec3 position, const glm::vec3& size, FloatingPointType translationSpeed, FloatingPointType rotationSpeed = 1.);
     void move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &collidingEntities);
     void rotate(float diffAngleX, float diffAngleZ);
     void jump();
@@ -696,7 +704,7 @@ private:
     bool active = true;
 };
 
-Player::Player(glm::vec3 position, FloatingPointType width, FloatingPointType length, FloatingPointType height, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, width, length, height), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
+Player::Player(glm::vec3 position, const glm::vec3& size, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, size), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
 {
 }
 
@@ -716,7 +724,7 @@ void Player::move(float dt, MovingDirection direction, std::vector<std::unique_p
             while (const auto& collidedEntity = detectCollision(collidingEntities))
             {
                 /* restoreFalling(); */
-                position.z = collidedEntity->getPosition().z + collidedEntity->getSize().z / 2 + height / 2 + std::numeric_limits<FloatingPointType>::epsilon() * 8.f;
+                position.z = collidedEntity->getPosition().z + collidedEntity->getSize().z / 2 + size.z / 2 + std::numeric_limits<FloatingPointType>::epsilon() * 8.f;
             }
             state = State::standing;
             verticalSpeed = 0;
@@ -828,7 +836,6 @@ public:
         }
         respawnPlayer();
         state = State::playing;
-        //clearColor = playingColor;
     }
 
     void centeredText(const std::string& text) 
@@ -893,7 +900,6 @@ public:
             bool open;
             ImGui::Begin("game over", &open, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
             
-            //ImGui_ImplSDL2_InitForVulkan(m_sdlWindow);
             ImGui::PushFont(futuraFont);
             centeredText("");
             centeredText("");
@@ -976,7 +982,7 @@ class RotatingBlade: public DisplayablePhysicalEntity
     }
 
 public:
-    RotatingBlade(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, const DisplayObject& object, glm::length_t rotationAxisIndex, Game& game): DisplayablePhysicalEntity(position, width, length, height, object, glm::vec3{float(rotationAxisIndex == 0), float(rotationAxisIndex == 1), float(rotationAxisIndex == 2) }), game{game}, rotationAxisIndex{rotationAxisIndex} {}
+    RotatingBlade(const glm::vec3& position, const glm::vec3& size, const DisplayObject& object, glm::length_t rotationAxisIndex, Game& game): DisplayablePhysicalEntity(position, size, object, glm::vec3{float(rotationAxisIndex == 0), float(rotationAxisIndex == 1), float(rotationAxisIndex == 2) }), game{game}, rotationAxisIndex{rotationAxisIndex} {}
 
     bool collide(const PhysicalEntity& other) override
     {
@@ -994,12 +1000,7 @@ public:
             const auto sideDistance1 = glm::abs(glm::sin(deviationAngle)) * distance;
             const auto sideDistance2 = glm::abs(glm::cos(deviationAngle)) * distance;
             
-            const auto minusBoundary = position[rotationAxisIndex] - getSize()[rotationAxisIndex] / 2;
-            const auto otherMinusBoundary = other.getPosition()[rotationAxisIndex] - other.getSize()[rotationAxisIndex] / 2;
-            const auto plusBoundary = position[rotationAxisIndex] + getSize()[rotationAxisIndex] / 2;
-            const auto otherPlusBoundary = other.getPosition()[rotationAxisIndex] + other.getSize()[rotationAxisIndex] / 2;
-            const bool rotationAxisOverlap = plusBoundary >= otherMinusBoundary && minusBoundary <= otherPlusBoundary;
-            if (sideDistance1 < getSize()[planeAxis1Index] && sideDistance2 < getSize()[planeAxis2Index] && rotationAxisOverlap)
+            if (sideDistance1 < size[planeAxis1Index] && sideDistance2 < size[planeAxis2Index] && overlaps(other, rotationAxisIndex))
             {
                 game.die();
                 return true;
@@ -1026,7 +1027,7 @@ class DisappearingBlock: public DisplayablePhysicalEntity
     enum class State {appearent, disappearent};
 
 public:
-    DisappearingBlock(const glm::vec3& position, FloatingPointType width, FloatingPointType length, FloatingPointType height, DisplayObject object, float timeOffset): DisplayablePhysicalEntity(position, width, length, height, object), passedTime{timeOffset}, timeOffset{timeOffset} {}
+    DisappearingBlock(const glm::vec3& position, const glm::vec3& size, DisplayObject object, float timeOffset): DisplayablePhysicalEntity(position, size, object), passedTime{timeOffset}, timeOffset{timeOffset} {}
     void advance (float dt) override
     {
         passedTime += dt;
@@ -1105,7 +1106,7 @@ private:
     SwapChain m_swapChain;
     DepthImage m_depthImage;
 
-    Player player{spawnPoint, .2f, .2f, 1.8f, 1.f};
+    Player player{spawnPoint, glm::vec3{.2f, .2f, 1.8f}, 1.f};
 
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
@@ -1187,29 +1188,28 @@ private:
 
     std::unique_ptr<DisplayablePhysicalEntity> createDisplayablePhysicalEntity(const ObjectCreateInformation& createInfo, DisplayObject& object)
     {
-        const auto& size = createInfo.size;
         using enum EntityType;
         switch(createInfo.type)
         {
             case regularBlock:
-                return std::make_unique<DisplayablePhysicalEntity>(createInfo.position, size.x, size.y, size.z, object);
+                return std::make_unique<DisplayablePhysicalEntity>(createInfo.position, createInfo.size, object);
             case movingBlock:
                 {
                     const auto& mbCreateInfo = createInfo.mbCreateInfo.value();
-                    auto result = std::make_unique<MovingBlock>(createInfo.position, size.x, size.y, size.z, object, mbCreateInfo.speed, mbCreateInfo.movingDuration, mbCreateInfo.waitingDuration, mbCreateInfo.movingDirection);
+                    auto result = std::make_unique<MovingBlock>(createInfo.position, createInfo.size, object, mbCreateInfo.speed, mbCreateInfo.movingDuration, mbCreateInfo.waitingDuration, mbCreateInfo.movingDirection);
                     return std::move(result);
                 }
             case fallingBlock:
-                return std::make_unique<FallingBlock>(createInfo.position, size.x, size.y, size.z, object);
+                return std::make_unique<FallingBlock>(createInfo.position, createInfo.size, object);
             case rotatingBlade:
                 {
                     const auto& rbCreateInfo = createInfo.rbCreateInfo.value();
-                    return std::make_unique<RotatingBlade>(createInfo.position, size.x, size.y, size.z, object, rbCreateInfo.rotationAxisIndex, game);
+                    return std::make_unique<RotatingBlade>(createInfo.position, createInfo.size, object, rbCreateInfo.rotationAxisIndex, game);
                 }
             case disappearingBlock:
                 {
                     const auto& dbCreateInfo = createInfo.dbCreateInfo.value();
-                    return std::make_unique<DisappearingBlock>(createInfo.position, size.x, size.y, size.z, object, dbCreateInfo.timeOffset);
+                    return std::make_unique<DisappearingBlock>(createInfo.position, createInfo.size, object, dbCreateInfo.timeOffset);
                 }
             default:
                 throw std::runtime_error("invalid entity type!");

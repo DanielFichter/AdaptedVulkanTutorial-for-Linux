@@ -1,27 +1,12 @@
 #include "physicalentity.hpp"
 #include "movingdirection.hpp"
 
+#include <stdexcept>
+#include <format>
+
 bool PhysicalEntity::collide(const PhysicalEntity &other)
 {
-    const auto leftBoundary = position.x - width / 2;
-    const auto otherLeftBoundary = other.position.x - other.width / 2;
-    const auto rightBoundary = position.x + width / 2;
-    const auto otherRightBoundary = other.position.x + other.width / 2;
-    const bool overlapX = rightBoundary >= otherLeftBoundary && leftBoundary <= otherRightBoundary;
-
-    const auto upperBoundary = position.y + length / 2;
-    const auto otherUpperBoundary = other.position.y + other.length / 2;
-    const auto lowerBoundary = position.y - length / 2;
-    const auto otherLowerBoundary = other.position.y - other.length / 2;
-    const bool overlapY = upperBoundary >= otherLowerBoundary && lowerBoundary <= otherUpperBoundary;
-
-    const auto frontBoundary = position.z + height / 2;
-    const auto otherFrontBoundary = other.position.z + other.height / 2;
-    const auto backBoundary = position.z - height / 2;
-    const auto otherBackBoundary = other.position.z - other.height / 2;
-    const bool overlapZ = frontBoundary >= otherBackBoundary && backBoundary <= otherFrontBoundary;
-
-    return overlapX && overlapY && overlapZ;
+    return overlaps(other, 0) && overlaps(other, 1) && overlaps(other, 2);
 }
 
 void PhysicalEntity::fall(float dt)
@@ -44,11 +29,24 @@ void PhysicalEntity::place(const glm::vec3 & newPosition)
     verticalSpeed = 0;
 }
 
-PhysicalEntity::PhysicalEntity(const glm::vec3 &position, FloatingPointType width, FloatingPointType length, FloatingPointType height) : position{position}, width{width}, height{height}, length{length}
+PhysicalEntity::PhysicalEntity(const glm::vec3 &position, const glm::vec3& size) : position{position}, size{size}
 {
 }
 
 void PhysicalEntity::translate(const glm::vec3& offset)
 {
     position += offset;
+}
+
+bool PhysicalEntity::overlaps(const PhysicalEntity &other, glm::length_t dimension) const
+{
+    if (dimension > 2)
+    {
+        throw std::runtime_error(std::format("dimension is {}, but is not allowed to be more than 2", dimension));
+    }
+    const auto leftBoundary = position[dimension] - size[dimension] / 2;
+    const auto otherLeftBoundary = other.position[dimension] - other.size[dimension] / 2;
+    const auto rightBoundary = position[dimension] + size[dimension] / 2;
+    const auto otherRightBoundary = other.position[dimension] + other.size[dimension] / 2;
+    return rightBoundary >= otherLeftBoundary && leftBoundary <= otherRightBoundary;
 }
