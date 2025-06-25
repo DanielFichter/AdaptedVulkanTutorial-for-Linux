@@ -102,6 +102,7 @@
 		"source_location": "cpp",
 		"string_view": "cpp",
 		"semaphore": "cpp",
-		"stdfloat": "cpp"
+		"stdfloat": "cpp",
+		"coroutine": "cpp"
 	}
 }

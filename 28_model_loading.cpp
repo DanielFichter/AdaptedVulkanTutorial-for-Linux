@@ -100,7 +100,8 @@ namespace
         movingBlock,
         fallingBlock,
         rotatingBlade,
-        disappearingBlock
+        disappearingBlock,
+        checkpoint
     };
 
     struct ObjectCreateInformation
@@ -121,9 +122,11 @@ namespace
         {EntityType::regularBlock, "textures/stone.png"},
         {EntityType::movingBlock, "textures/moving_block.png"},
         {EntityType::rotatingBlade, "textures/rotating_blade.png"},
-        {EntityType::disappearingBlock, "textures/disappearing_block.png"}
+        {EntityType::disappearingBlock, "textures/disappearing_block.png"},
+        {EntityType::checkpoint, "textures/checkpoint.png"}
     };
     const std::string blockModel = "models/cube.obj";
+    const std::string checkpointModel = "models/sphere.obj";
 
     const FloatingPointType standardBlockSize = .5;
 
@@ -142,6 +145,7 @@ namespace
         {glm::vec3{9.f, 3.f, 3.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
         {glm::vec3{10.f, 3.f, 3.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
         {glm::vec3{10.f, 4.f, 4.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{11.f, 4.f, 5.5f}, glm::vec3{.25}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::checkpoint, {}, {}, {}},
         {glm::vec3{11.f, 4.f, 5.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
         {glm::vec3{12.5f, 4.f, 4.f}, glm::vec3{2.f, .25f, .05f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{2}}, {}},
         {glm::vec3{12.f, 4.f, 0.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
@@ -152,7 +156,6 @@ namespace
         {glm::vec3{17.f, 4.f, 2.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
     };
 
-    const glm::vec3 spawnPoint{0.f, 0.f, 3.f};
     
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -186,21 +189,6 @@ namespace
         }
         return result + "]";
     }
-
-    /* template<size_t nDimensions, typename type>
-    std::string toString(glm::vec<nDimensions, type> vector)
-    {
-        std::string result = "[";
-        for (glm::length_t dimension = 0; dimension < nDimensions; dimension++)
-        {
-            if (dimension)
-            {
-                result += ", ";
-            }
-            result += vector [dimension];
-        }
-        return result + "]";
-    } */
 
     std::string toString(const glm::vec3& vector)
     {
@@ -820,6 +808,8 @@ glm::mat4 Player::createZRotationMatrix() const
     return glm::rotate(glm::mat4{1.f}, zAngle, glm::vec3{Axes::z});
 }
 
+
+
 class Game
 {
 public:
@@ -923,6 +913,7 @@ public:
     {
         player.stop();
         state = State::won;
+        spawnPoint = originalSpawnPoint;
     }
 
     void setRenderer(SDL_Renderer* newRenderer)
@@ -945,6 +936,11 @@ public:
         return clearColor;
     }
 
+    void setSpawnPoint(const glm::vec3& newSpawnPoint)
+    {
+        spawnPoint = newSpawnPoint;
+    }
+
 private:
     enum class State {playing, gameOver, won};
     const static VkClearColorValue playingColor; 
@@ -957,10 +953,32 @@ private:
     ImFont* futuraFont = nullptr;
     SDL_Window* window;
     State state = State::playing;
+    glm::vec3 originalSpawnPoint{0.f, 0.f, 3.f};
+    glm::vec3 spawnPoint = originalSpawnPoint;
 };
 
 const VkClearColorValue Game::playingColor{{0.4f, 0.5f, 6.0f, 1.0f}};
 const VkClearColorValue Game::gameOverColor{{.9f, .0f, .0f, 1.f}};
+
+class Checkpoint: public DisplayablePhysicalEntity
+{
+public:
+    Checkpoint(const glm::vec3& position, const glm::vec3& size, const DisplayObject& object, Game& game): DisplayablePhysicalEntity(position, size, object), game{game} {}
+
+    std::optional<PhysicalEntity::Collision> collide(const PhysicalEntity& other) override
+    {
+
+        if (PhysicalEntity::collide(other))
+        {
+            game.setSpawnPoint(position);
+        }
+
+        return {};
+    }
+
+private:
+    Game& game;
+};
 
 class RotatingBlade: public DisplayablePhysicalEntity
 {
@@ -1114,7 +1132,7 @@ private:
     SwapChain m_swapChain;
     DepthImage m_depthImage;
 
-    Player player{spawnPoint, glm::vec3{.2f, .2f, 1.8f}, 1.5f};
+    Player player{glm::vec3{0.f, 0.f, 3.f}, glm::vec3{.2f, .2f, 1.8f}, 1.5f};
 
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
@@ -1159,6 +1177,11 @@ private:
         game.setWindow(m_sdlWindow);
     }
 
+    void initGame()
+    {
+        game.respawnPlayer();
+    }
+
     void initVMA(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, VmaAllocator& allocator) {
         VmaVulkanFunctions vulkanFunctions = {};
         vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
@@ -1184,7 +1207,8 @@ private:
 		createTextureImage(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, usedTextures.at(createInfo.type), object.m_texture);
         createTextureImageView(device, object.m_texture);
         createTextureSampler(physicalDevice, device, object.m_texture);
-        loadModel(object.m_geometry, blockModel);
+        const auto model = createInfo.type == EntityType::checkpoint ? checkpointModel : blockModel;
+        loadModel(object.m_geometry, model);
         createVertexBuffer(physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, object.m_geometry);
         createIndexBuffer( physicalDevice, device, vmaAllocator, graphicsQueue, commandPool, object.m_geometry);
         createUniformBuffers(physicalDevice, device, vmaAllocator, object.m_uniformBuffers);
@@ -1219,6 +1243,8 @@ private:
                     const auto& dbCreateInfo = createInfo.dbCreateInfo.value();
                     return std::make_unique<DisappearingBlock>(createInfo.position, createInfo.size, object, dbCreateInfo.timeOffset);
                 }
+            case checkpoint:
+                return std::make_unique<Checkpoint>(createInfo.position, createInfo.size, object, game);
             default:
                 throw std::runtime_error("invalid entity type!");
         }
