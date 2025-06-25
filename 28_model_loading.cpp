@@ -933,7 +933,7 @@ public:
 
     void setFuturaFont(ImFont* newFuturaFont)
     {
-        futuraFont = futuraFont;
+        futuraFont = newFuturaFont;
     }
 
     void setWindow(SDL_Window* newWindow)
