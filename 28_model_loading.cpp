@@ -139,7 +139,7 @@ namespace
         {glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
         {glm::vec3{4.f + standardBlockSize, 3.f, 1.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
         {glm::vec3{5.5f, 3.f, 1.25f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
-        {glm::vec3{6.f, 3.f, 5.5f}, glm::vec3{.3f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{0}}, {}},
+        {glm::vec3{6.f, 3.f, 5.f}, glm::vec3{.3f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{0}}, {}},
         {glm::vec3{7.f, 3.f, 1.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
         {glm::vec3{8.f, 3.f, 1.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{elevatorMBCreateInfo}, {}, {}},
         {glm::vec3{9.f, 3.f, 3.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
@@ -1006,8 +1006,8 @@ public:
             
             const std::map<glm::length_t, FloatingPointType> overlapValues{
                 {rotationAxisIndex, overlaps(other, rotationAxisIndex)},
-                {planeAxis1Index,  size[planeAxis1Index] - sideDistance1},
-                {planeAxis2Index, sideDistance2 < size[planeAxis2Index]}
+                {planeAxis1Index,  size[planeAxis1Index] / 2 - sideDistance1},
+                {planeAxis2Index, size[planeAxis2Index] / 2 - sideDistance2}
             };
 
             if (std::all_of(overlapValues.begin(), overlapValues.end(), [] (const auto& indexOverlap) { return indexOverlap.second > 0; }))
