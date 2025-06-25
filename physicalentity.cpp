@@ -3,10 +3,27 @@
 
 #include <stdexcept>
 #include <format>
+#include <algorithm>
+#include <iostream>
+#include <vector>
 
-bool PhysicalEntity::collide(const PhysicalEntity &other)
+std::optional<PhysicalEntity::Collision> PhysicalEntity::collide(const PhysicalEntity &other)
 {
-    return overlaps(other, 0) && overlaps(other, 1) && overlaps(other, 2);
+    if (overlaps(other, 0) && overlaps(other, 1) && overlaps(other, 2))
+    {
+        std::cout << std::format("z overlap: {}\n", overlaps(other, 2));
+    }
+    
+    const std::vector<glm::length_t> dimensions{0, 1, 2};
+    std::vector<FloatingPointType> overlapValues(3);
+    std::transform(dimensions.begin(), dimensions.end(), overlapValues.begin(), [this, &other] (glm::length_t dimension) { return overlaps(other, dimension); });
+    
+    if (std::all_of(overlapValues.begin(), overlapValues.end(), [] (FloatingPointType value) { return value; }))
+    {
+        const glm::length_t collisionDimension = *std::min_element(dimensions.begin(), dimensions.end(), [overlapValues] (glm::length_t dimension1, glm::length_t dimension2) { return std::abs(overlapValues.at(dimension1)) < std::abs(overlapValues.at(dimension2)); });
+        return {Collision{collisionDimension, *this, overlapValues.at(collisionDimension) > 0.f ? 1.f : -1.f}};
+    }
+    return {};
 }
 
 void PhysicalEntity::fall(float dt)
@@ -38,15 +55,26 @@ void PhysicalEntity::translate(const glm::vec3& offset)
     position += offset;
 }
 
-bool PhysicalEntity::overlaps(const PhysicalEntity &other, glm::length_t dimension) const
+FloatingPointType PhysicalEntity::overlaps(const PhysicalEntity &other, glm::length_t dimension) const
 {
     if (dimension > 2)
     {
         throw std::runtime_error(std::format("dimension is {}, but is not allowed to be more than 2", dimension));
     }
-    const auto leftBoundary = position[dimension] - size[dimension] / 2;
-    const auto otherLeftBoundary = other.position[dimension] - other.size[dimension] / 2;
-    const auto rightBoundary = position[dimension] + size[dimension] / 2;
-    const auto otherRightBoundary = other.position[dimension] + other.size[dimension] / 2;
-    return rightBoundary >= otherLeftBoundary && leftBoundary <= otherRightBoundary;
+    const auto minusBoundary = position[dimension] - size[dimension] / 2;
+    const auto otherMinusBoundary = other.position[dimension] - other.size[dimension] / 2;
+    const auto plusBoundary = position[dimension] + size[dimension] / 2;
+    const auto otherPlusBoundary = other.position[dimension] + other.size[dimension] / 2;
+    if (plusBoundary >= otherMinusBoundary && minusBoundary <= otherPlusBoundary)
+    {
+        if (plusBoundary - otherMinusBoundary < otherPlusBoundary - minusBoundary)
+        {
+            return otherMinusBoundary - plusBoundary;
+        }
+        else
+        {
+            return otherPlusBoundary - minusBoundary;
+        }
+    }
+    return 0.f;
 }

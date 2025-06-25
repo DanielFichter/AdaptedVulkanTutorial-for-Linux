@@ -625,9 +625,9 @@ class FallingBlock: public DisplayablePhysicalEntity
 {
 public:
     FallingBlock(const glm::vec3& position, const glm::vec3& size, DisplayObject& object): DisplayablePhysicalEntity(position, size, object), initialPosition{position} {}
-    bool collide(const PhysicalEntity& other) override
+    std::optional<PhysicalEntity::Collision> collide(const PhysicalEntity& other) override
     {
-        const bool result = PhysicalEntity::collide(other);
+        const auto result = PhysicalEntity::collide(other);
         if (result && state == State::notCollided)
         {
             state = State::collided;
@@ -679,7 +679,7 @@ private:
 class Player : public PhysicalEntity
 {
 public:
-    Player(glm::vec3 position, const glm::vec3& size, FloatingPointType translationSpeed, FloatingPointType rotationSpeed = 1.);
+    Player(const glm::vec3& position, const glm::vec3& size, FloatingPointType translationSpeed, FloatingPointType rotationSpeed = 1.);
     void move(float dt, MovingDirection direction, std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &collidingEntities);
     void rotate(float diffAngleX, float diffAngleZ);
     void jump();
@@ -691,7 +691,7 @@ public:
 private:
     FloatingPointType cameraZOffset = .5f;
     enum class State {falling, standing, walking};
-    const std::unique_ptr<DisplayablePhysicalEntity>& detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &);
+    std::optional<PhysicalEntity::Collision> detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &);
     State state = State::falling;
     void translate(MovingDirection direction, float dt);
     glm::mat4 createRotationMatrix() const;
@@ -704,7 +704,7 @@ private:
     bool active = true;
 };
 
-Player::Player(glm::vec3 position, const glm::vec3& size, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, size), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
+Player::Player(const glm::vec3& position, const glm::vec3& size, FloatingPointType translationSpeed, FloatingPointType rotationSpeed) : PhysicalEntity(position, size), translationSpeed{translationSpeed}, rotationSpeed{rotationSpeed}
 {
 }
 
@@ -721,13 +721,18 @@ void Player::move(float dt, MovingDirection direction, std::vector<std::unique_p
     {
         if (verticalSpeed < 0)
         {
-            while (const auto& collidedEntity = detectCollision(collidingEntities))
+            while (const auto& collision = detectCollision(collidingEntities))
             {
-                /* restoreFalling(); */
-                position.z = collidedEntity->getPosition().z + collidedEntity->getSize().z / 2 + size.z / 2 + std::numeric_limits<FloatingPointType>::epsilon() * 8.f;
+                const auto& collidedEntity = collision->physicalEntity;
+                const auto collisionDimension = collision->dimension;
+                const auto sign = collision->sign;
+                position[collisionDimension] = collidedEntity.getPosition()[collisionDimension] - sign * (collidedEntity.getSize()[collisionDimension] / 2 + size[collisionDimension] / 2 + std::numeric_limits<FloatingPointType>::epsilon() * 8.f);
+                if (collisionDimension == 2)
+                {
+                    state = State::standing;
+                    verticalSpeed = 0;
+                }
             }
-            state = State::standing;
-            verticalSpeed = 0;
         }
     }
     else
@@ -778,18 +783,16 @@ glm::mat4 Player::createViewMatrix() const
     return glm::translate(glm::transpose(rotationMatrix), -position - glm::vec3{0.f, 0.f, cameraZOffset});
 }
 
-const std::unique_ptr<DisplayablePhysicalEntity>& Player::detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> & collidingEntities)
+std::optional<PhysicalEntity::Collision> Player::detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> & collidingEntities)
 {
-    auto itCollidedEntity = std::find_if(collidingEntities.begin(), collidingEntities.end(), [this] (const std::unique_ptr<DisplayablePhysicalEntity>& pEntity) {
-        return pEntity->collide(*this); });
-    if (itCollidedEntity == collidingEntities.end())
+    for (auto& entity: collidingEntities)
     {
-        return 0;
+        if (auto collision = entity->collide(*this))
+        {
+            return {collision};
+        }
     }
-    else 
-    {
-        return (*itCollidedEntity);
-    }
+    return {};
 }
 
 void Player::translate(MovingDirection direction, float dt)
@@ -984,7 +987,7 @@ class RotatingBlade: public DisplayablePhysicalEntity
 public:
     RotatingBlade(const glm::vec3& position, const glm::vec3& size, const DisplayObject& object, glm::length_t rotationAxisIndex, Game& game): DisplayablePhysicalEntity(position, size, object, glm::vec3{float(rotationAxisIndex == 0), float(rotationAxisIndex == 1), float(rotationAxisIndex == 2) }), game{game}, rotationAxisIndex{rotationAxisIndex} {}
 
-    bool collide(const PhysicalEntity& other) override
+    std::optional<PhysicalEntity::Collision> collide(const PhysicalEntity& other) override
     {
         const auto otherCorners = getObjectCorners(other.getPosition(), other.getSize());
         
@@ -1000,21 +1003,27 @@ public:
             const auto sideDistance1 = glm::abs(glm::sin(deviationAngle)) * distance;
             const auto sideDistance2 = glm::abs(glm::cos(deviationAngle)) * distance;
             
-            if (sideDistance1 < size[planeAxis1Index] && sideDistance2 < size[planeAxis2Index] && overlaps(other, rotationAxisIndex))
+            const std::map<glm::length_t, FloatingPointType> overlapValues{
+                {rotationAxisIndex, overlaps(other, rotationAxisIndex)},
+                {planeAxis1Index,  size[planeAxis1Index] - sideDistance1},
+                {planeAxis2Index, sideDistance2 < size[planeAxis2Index]}
+            };
+
+            if (std::all_of(overlapValues.begin(), overlapValues.end(), [] (const auto& indexOverlap) { return indexOverlap.second > 0; }))
             {
                 game.die();
-                return true;
+                //const glm::length_t collisionDimension = std::max_element(overlapValues.begin(), overlapValues.end(), [] (const auto& indexOverlap1, const auto& indexOverlap2) { return indexOverlap.second ; })->first;
+                return {{0, *this, 1.f}};
             }
         }
             
-        return false;
+        return {};
     }
 
 private:
     void advance(float dt) override
     {
         rotate(dt * rotationSpeed);
-        std::cout << std::format("rotating blade angle: {}", angle) << std::endl;
     }
 
     glm::length_t rotationAxisIndex = 0;
@@ -1057,13 +1066,13 @@ public:
         state = State::appearent;
     }
 
-    bool collide(const PhysicalEntity& other) override
+    std::optional<PhysicalEntity::Collision> collide(const PhysicalEntity& other) override
     {
         if (getShouldBeDisplayed())
         {
             return PhysicalEntity::collide(other);
         }
-        return false;
+        return {};
     }
 
 private:
@@ -2655,7 +2664,7 @@ private:
             constexpr static float cameraSpeed = .5f;            
 
 	        object.m_ubo.view = viewMatrix;
-			object.m_ubo.proj = glm::perspective(glm::radians(80.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.1f, 100.0f);
+			object.m_ubo.proj = glm::perspective(glm::radians(80.0f), swapChain.m_swapChainExtent.width / (float) swapChain.m_swapChainExtent.height, 0.01f, 100.0f);
 	        object.m_ubo.proj[1][1] *= -1;
 
 	        memcpy(object.m_uniformBuffers.m_uniformBuffersMapped[currentImage], &object.m_ubo, sizeof(object.m_ubo));
