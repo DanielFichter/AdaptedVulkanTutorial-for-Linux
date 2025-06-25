@@ -125,30 +125,31 @@ namespace
     };
     const std::string blockModel = "models/cube.obj";
 
+    const FloatingPointType standardBlockSize = .5;
+
     const std::vector<ObjectCreateInformation> objectsCreateInformation{
-        {glm::vec3{0.f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragBright.spv"}, EntityType::regularBlock, {}, {}, {}},
-        {glm::vec3{.25f, 0.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/fragDoubleTexture.spv"}, EntityType::regularBlock, {}, {}, {}},
-        {glm::vec3{1.f, 0.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
-        {glm::vec3{2.f, 1.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
-        {glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}, {}, {}},
-        {glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
-        {glm::vec3{4.25f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
-        {glm::vec3{4.5f, 3.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
-        {glm::vec3{5.5f, 3.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
-        {glm::vec3{6.f, 3.f, 5.5f}, glm::vec3{.05f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{0}}, {}},
-        {glm::vec3{7.f, 3.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
-        {glm::vec3{8.f, 3.f, 1.f}, glm::vec3{.25}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{elevatorMBCreateInfo}, {}, {}},
-        {glm::vec3{9.f, 3.f, 3.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
-        {glm::vec3{10.f, 3.f, 3.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
-        {glm::vec3{10.f, 4.f, 4.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
-        {glm::vec3{11.f, 4.f, 5.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{0.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{standardBlockSize, 0.f, 0.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{1.f + standardBlockSize, 0.f, .5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{2.f, 1.f, 1.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{3.f, 1.f, 1.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{standardMBCreateInfo}, {}, {}},
+        {glm::vec3{4.f, 3.f, 1.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{4.f + standardBlockSize, 3.f, 1.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{5.5f, 3.f, 1.25f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{6.f, 3.f, 5.5f}, glm::vec3{.3f, .25f, 6.f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{0}}, {}},
+        {glm::vec3{7.f, 3.f, 1.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}},
+        {glm::vec3{8.f, 3.f, 1.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::movingBlock, std::optional<MovingBlockCreateInformation>{elevatorMBCreateInfo}, {}, {}},
+        {glm::vec3{9.f, 3.f, 3.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{10.f, 3.f, 3.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{10.f, 4.f, 4.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::fallingBlock, {}, {}, {}},
+        {glm::vec3{11.f, 4.f, 5.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
         {glm::vec3{12.5f, 4.f, 4.f}, glm::vec3{2.f, .25f, .05f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::rotatingBlade, {}, std::optional<RotatingBladeCreateInformation>{RotatingBladeCreateInformation{2}}, {}},
-        {glm::vec3{12.f, 4.f, 0.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
-        {glm::vec3{13.f, 4.f, .5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{1.5f}}},
-        {glm::vec3{14.f, 4.f, 1.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{1.f}}},
-        {glm::vec3{15.f, 4.f, 1.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{0.5f}}},
-        {glm::vec3{16.f, 4.f, 2.f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{0.f}}},
-        {glm::vec3{17.f, 4.f, 2.5f}, glm::vec3{.25f}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{12.f, 4.f, 0.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
+        {glm::vec3{13.f, 4.f, .5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{1.5f}}},
+        {glm::vec3{14.f, 4.f, 1.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{1.f}}},
+        {glm::vec3{15.f, 4.f, 1.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{0.5f}}},
+        {glm::vec3{16.f, 4.f, 2.f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::disappearingBlock, {}, {}, std::optional<DisappearingBlockCreateInformation>{DisappearingBlockCreateInformation{0.f}}},
+        {glm::vec3{17.f, 4.f, 2.5f}, glm::vec3{standardBlockSize}, {VK_CULL_MODE_BACK_BIT, "shaders/vert.spv", "shaders/frag.spv"}, EntityType::regularBlock, {}, {}, {}},
     };
 
     const glm::vec3 spawnPoint{0.f, 0.f, 3.f};
@@ -1115,7 +1116,7 @@ private:
     SwapChain m_swapChain;
     DepthImage m_depthImage;
 
-    Player player{spawnPoint, glm::vec3{.2f, .2f, 1.8f}, 1.f};
+    Player player{spawnPoint, glm::vec3{.2f, .2f, 1.8f}, 1.5f};
 
     VkRenderPass m_renderPass;
     VkDescriptorSetLayout m_descriptorSetLayout;
