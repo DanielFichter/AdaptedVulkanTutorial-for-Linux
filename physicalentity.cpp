@@ -8,12 +8,7 @@
 #include <vector>
 
 std::optional<PhysicalEntity::Collision> PhysicalEntity::collide(const PhysicalEntity &other)
-{
-    if (overlaps(other, 0) && overlaps(other, 1) && overlaps(other, 2))
-    {
-        std::cout << std::format("z overlap: {}\n", overlaps(other, 2));
-    }
-    
+{    
     const std::vector<glm::length_t> dimensions{0, 1, 2};
     std::vector<FloatingPointType> overlapValues(3);
     std::transform(dimensions.begin(), dimensions.end(), overlapValues.begin(), [this, &other] (glm::length_t dimension) { return overlaps(other, dimension); });
