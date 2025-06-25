@@ -677,7 +677,7 @@ public:
 
 private:
     FloatingPointType cameraZOffset = .5f;
-    enum class State {falling, standing, walking};
+    enum class State {falling, standing};
     std::optional<PhysicalEntity::Collision> detectCollision(std::vector<std::unique_ptr<DisplayablePhysicalEntity>> &);
     State state = State::falling;
     void translate(MovingDirection direction, float dt);
@@ -788,10 +788,6 @@ void Player::translate(MovingDirection direction, float dt)
         const auto directionVector = directionToAxis.at(direction);
         const auto zRotation = createZRotationMatrix();
         position += glm::vec3{zRotation * directionVector * translationSpeed * dt};
-        if (state == State::standing)
-        {
-            state = State::walking;
-        }
     }
 }
 
@@ -811,7 +807,7 @@ glm::mat4 Player::createZRotationMatrix() const
 class Game
 {
 public:
-    Game(Player& player, std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities): player{player}, physicalEntities{physicalEntities}, clearColor{playingColor} {}
+    Game(Player& player, std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities): player{player}, physicalEntities{physicalEntities} {}
 
     void respawnPlayer()
     {
@@ -929,11 +925,6 @@ public:
         window = newWindow;
     }
 
-    VkClearColorValue getClearColor() const 
-    {
-        return clearColor;
-    }
-
     void setSpawnPoint(const glm::vec3& newSpawnPoint)
     {
         spawnPoint = newSpawnPoint;
@@ -941,12 +932,9 @@ public:
 
 private:
     enum class State {playing, gameOver, won};
-    const static VkClearColorValue playingColor; 
-    const static VkClearColorValue gameOverColor;
     const FloatingPointType minPlayerHeight = -20.f;
     Player& player;
     std::vector<std::unique_ptr<DisplayablePhysicalEntity>>& physicalEntities;
-    VkClearColorValue clearColor = playingColor;
     SDL_Renderer* renderer = nullptr;
     ImFont* futuraFont = nullptr;
     SDL_Window* window;
@@ -954,9 +942,6 @@ private:
     glm::vec3 originalSpawnPoint{0.f, 0.f, 3.f};
     glm::vec3 spawnPoint = originalSpawnPoint;
 };
-
-const VkClearColorValue Game::playingColor{{0.4f, 0.5f, 6.0f, 1.0f}};
-const VkClearColorValue Game::gameOverColor{{.9f, .0f, .0f, 1.f}};
 
 class Checkpoint: public DisplayablePhysicalEntity
 {
@@ -2549,7 +2534,7 @@ private:
         renderPassInfo.renderArea.extent = swapChain.m_swapChainExtent;
 
         std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = game.getClearColor();
+        clearValues[0].color = {.4f, .5f, 6.f, 1.f};
         clearValues[1].depthStencil = {1.0f, 0};
 
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
