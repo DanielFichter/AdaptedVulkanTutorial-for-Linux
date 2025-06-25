@@ -1014,7 +1014,6 @@ public:
             {
                 game.die();
                 //const glm::length_t collisionDimension = std::max_element(overlapValues.begin(), overlapValues.end(), [] (const auto& indexOverlap1, const auto& indexOverlap2) { return indexOverlap.second ; })->first;
-                return {{0, *this, 1.f}};
             }
         }
             
