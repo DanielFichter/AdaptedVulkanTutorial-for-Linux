@@ -480,7 +480,7 @@ struct DisplayObject
     Pipeline m_pipeline;
 };
 
-// TODO: move DisplayablePhysicalEntity into own file
+
 class DisplayablePhysicalEntity: public PhysicalEntity
 {
 public:
@@ -662,8 +662,6 @@ private:
     float passedTime = 0;
     float timeOffset = 1.f;
 };
-
-}
 
 class Player : public PhysicalEntity
 {
@@ -970,7 +968,7 @@ public:
 
         if (PhysicalEntity::collide(other))
         {
-            game.setSpawnPoint(position);
+            game.setSpawnPoint(position + glm::vec3{0.f, 0.f, 2.f});
         }
 
         return {};
@@ -1099,6 +1097,7 @@ private:
     float passedTime = 0;
     float timeOffset = 0;
 };
+}
 
 class HelloTriangleApplication {
 public:
@@ -1175,11 +1174,6 @@ private:
         m_sdlWindow = SDL_CreateWindow("Hop Hop Hurray", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, window_flags);
         m_renderer = SDL_CreateRenderer(m_sdlWindow, -1, 0);
         game.setWindow(m_sdlWindow);
-    }
-
-    void initGame()
-    {
-        game.respawnPlayer();
     }
 
     void initVMA(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device, VmaAllocator& allocator) {
